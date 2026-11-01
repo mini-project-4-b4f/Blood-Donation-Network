@@ -1,0 +1,1046 @@
+# Blood Donation Network API
+
+## 1. Overview
+
+The API is the **source of truth** for the entire application. The frontend only displays what the API returns and never duplicates business rules.
+
+The backend decides:
+
+- which donor blood types are compatible with a blood request (R-1, R-2)
+- whether a donor is in their 56-day post-donation rest period and their exact `nextAllowedDonationDate` (R-3, R-4, R-5)
+- whether a donor is eligible for a request (`ELIGIBLE`, `REST_PERIOD`, `UNAVAILABLE`, `INACTIVE`) and the exact rejection reason when they are not (R-6)
+- the ranked order of eligible donors and the excluded-donor summary counts (`restPeriod`, `unavailable`, `inactive`) for any open request (R-7, R-8)
+- the request lifecycle status (`OPEN`, `FULFILLED`, `CANCELLED`) and `unitsStillNeeded` (`unitsRequired - unitsCollected`) (R-9, R-10, R-11, R-14)
+- whether a pledge is accepted or rejected (at most one active `PLEDGED` pledge per donor, and active pledges on a request never exceed `unitsStillNeeded`) (R-15, R-16, R-17)
+- atomic recording of a completed donation inside a single database transaction (`prisma.$transaction`), automatically updating `unitsCollected`, completing the donor's pledge, starting the donor's 56-day rest period, and—when `unitsCollected === unitsRequired`—marking the request `FULFILLED` and releasing all remaining `PLEDGED` pledges to `RELEASED` (R-18, R-19, R-20, R-21, R-22)
+- privacy filtering on public endpoints so donor personal data, patient references, and coordinator notes are never exposed to the public (R-23, R-24)
+
+The API uses **Node.js**, **NestJS**, **TypeScript**, **PostgreSQL** through **Prisma ORM**, **JWT authentication**, and **Swagger / OpenAPI**. All data persists across server restarts.
+
+## 2. Base URL & Authentication
+
+```text
+http://localhost:3000/api
+```
+
+Swagger / OpenAPI interactive documentation:
+
+```text
+http://localhost:3000/api/docs
+```
+
+Frontend environment variable:
+
+```text
+VITE_API_URL=http://localhost:3000/api
+```
+
+All routes below start with `/api`.
+
+### Authentication & Role Guards
+
+Protected endpoints require a valid JWT in the `Authorization` header:
+
+```http
+Authorization: Bearer <accessToken>
+```
+
+| Guard / Decorator | Behavior | Error Status & Message |
+| --- | --- | --- |
+| `@Public()` | Open to everyone without a token. Returns public fields only. | — |
+| `JwtAuthGuard` | Verifies the `Bearer` token and checks that the user exists and `isActive === true`. | `401 Unauthorized` — `{ "message": "Authentication required. Please sign in." }` |
+| `RolesGuard` (`@Roles('COORDINATOR')` or `@Roles('DONOR')`) | Verifies that `req.user.role` matches the required role. | `403 Forbidden` — `{ "message": "You do not have permission to perform this action." }` |
+
+## 3. Endpoint Summary
+
+| Method | Endpoint | Access / Role | Purpose | Backend Owner |
+| --- | --- | --- | --- | --- |
+| GET | `/areas` | Public | List all supported areas | Eyad |
+| POST | `/auth/sign-up` | Public | Register a new volunteer donor account | Eyad |
+| POST | `/auth/sign-in` | Public | Sign in as Coordinator or Donor and receive a JWT | Eyad |
+| GET | `/auth/me` | Authenticated (`DONOR` or `COORDINATOR`) | Get current signed-in user profile | Eyad |
+| GET | `/requests/sos` | Public | List `OPEN` requests for the public SOS board (public fields only) | Adham |
+| POST | `/requests` | `COORDINATOR` | Publish a new `OPEN` SOS blood request | Adham |
+| GET | `/requests` | `COORDINATOR` | List all blood requests with optional filters (`status`, `bloodType`, `areaId`, `urgency`) | Adham |
+| GET | `/requests/:id` | `COORDINATOR` | Get full details of one request (counters, pledges, donations) | Adham |
+| PATCH | `/requests/:id` | `COORDINATOR` | Update an `OPEN` request's `unitsRequired`, `urgency`, and `note` | Adham |
+| PATCH | `/requests/:id/cancel` | `COORDINATOR` | Cancel an `OPEN` request with a reason and release active pledges | Adham |
+| GET | `/requests/:id/eligible-donors` | `COORDINATOR` | Get ranked eligible donors and excluded-donor summary by reason | Adham (calls Eyad's `MatchingService`) |
+| POST | `/requests/:id/donations` | `COORDINATOR` | Record a completed 1-unit donation in a database transaction | Adham (calls Eyad's `MatchingService`) |
+| GET | `/donors/me` | `DONOR` | Get own donor profile, eligibility status, next allowed date, active pledge, and donation history | Laith (calls Eyad's `MatchingService`) |
+| PATCH | `/donors/me` | `DONOR` | Update own `areaId`, `phone`, and `isAvailable` flag | Laith |
+| PATCH | `/donors/me/deactivate` | `DONOR` | Deactivate own account (`isActive = false`) and withdraw active pledge | Laith |
+| GET | `/donors/me/eligible-requests` | `DONOR` | List `OPEN` requests the signed-in donor is currently eligible to help with | Laith (calls Eyad's `MatchingService`) |
+| GET | `/donors` | `COORDINATOR` | List all donors with their eligibility status and matching data | Laith |
+| POST | `/requests/:id/pledges` | `DONOR` | Pledge to donate to an eligible `OPEN` request | Laith (calls Eyad's `MatchingService`) |
+| PATCH | `/pledges/:id/withdraw` | `DONOR` | Withdraw own active `PLEDGED` pledge | Laith |
+
+## 4. Data Shapes
+
+All JSON fields use `camelCase`.
+
+```text
+date         YYYY-MM-DD                 example: 2026-12-12
+timestamp    ISO 8601 UTC               example: 2026-11-01T09:10:00.000Z
+bloodType    'O-' | 'O+' | 'A-' | 'A+' | 'B-' | 'B+' | 'AB-' | 'AB+'
+urgency      'CRITICAL' | 'HIGH' | 'NORMAL'
+```
+
+### 4.1 Area
+
+```json
+{
+  "id": "area-homs",
+  "name": "Homs"
+}
+```
+
+### 4.2 AuthUser & AuthResponse
+
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": "u-donor-sara",
+    "phone": "0933112233",
+    "email": "sara@example.com",
+    "role": "DONOR",
+    "isActive": true,
+    "donorProfile": {
+      "id": "dp-sara",
+      "fullName": "Sara Al-Khatib",
+      "bloodType": "A-",
+      "area": { "id": "area-homs", "name": "Homs" },
+      "isAvailable": true
+    }
+  }
+}
+```
+
+For a `COORDINATOR`, `donorProfile` is `null`.
+
+### 4.3 PublicSosRequest (Public SOS Board — FR-8, R-23)
+
+Contains **only** public fields. Never includes `patientReference`, `note`, `cancelReason`, `createdBy`, `pledges`, or `donations`.
+
+```json
+{
+  "id": "req-101",
+  "bloodType": "A-",
+  "area": { "id": "area-homs", "name": "Homs" },
+  "urgency": "CRITICAL",
+  "hospital": "Central Blood Bank Homs",
+  "unitsStillNeeded": 3,
+  "createdAt": "2026-11-01T09:10:00.000Z"
+}
+```
+
+### 4.4 CoordinatorRequestSummary (`GET /requests` item)
+
+```json
+{
+  "id": "req-101",
+  "patientReference": "HOMS-ICU-402",
+  "bloodType": "A-",
+  "unitsRequired": 3,
+  "unitsCollected": 1,
+  "unitsStillNeeded": 2,
+  "area": { "id": "area-homs", "name": "Homs" },
+  "urgency": "CRITICAL",
+  "status": "OPEN",
+  "hospital": "Central Blood Bank Homs",
+  "note": "Emergency surgery in Ward 3.",
+  "cancelReason": null,
+  "activePledgesCount": 1,
+  "createdAt": "2026-11-01T09:10:00.000Z",
+  "updatedAt": "2026-11-01T11:30:00.000Z"
+}
+```
+
+### 4.5 CoordinatorRequestDetails (`GET /requests/:id`)
+
+Extends `CoordinatorRequestSummary` with `pledges` and `donations` (FR-13):
+
+```json
+{
+  "id": "req-101",
+  "patientReference": "HOMS-ICU-402",
+  "bloodType": "A-",
+  "unitsRequired": 3,
+  "unitsCollected": 1,
+  "unitsStillNeeded": 2,
+  "area": { "id": "area-homs", "name": "Homs" },
+  "urgency": "CRITICAL",
+  "status": "OPEN",
+  "hospital": "Central Blood Bank Homs",
+  "note": "Emergency surgery in Ward 3.",
+  "cancelReason": null,
+  "activePledgesCount": 0,
+  "createdAt": "2026-11-01T09:10:00.000Z",
+  "updatedAt": "2026-11-01T11:30:00.000Z",
+  "pledges": [
+    {
+      "id": "plg-501",
+      "status": "COMPLETED",
+      "createdAt": "2026-11-01T09:45:00.000Z",
+      "donor": {
+        "id": "dp-sara",
+        "fullName": "Sara Al-Khatib",
+        "phone": "0933112233",
+        "bloodType": "A-",
+        "area": { "id": "area-homs", "name": "Homs" }
+      }
+    }
+  ],
+  "donations": [
+    {
+      "id": "don-901",
+      "donationDate": "2026-11-01",
+      "units": 1,
+      "createdAt": "2026-11-01T11:30:00.000Z",
+      "donor": {
+        "id": "dp-sara",
+        "fullName": "Sara Al-Khatib",
+        "phone": "0933112233",
+        "bloodType": "A-"
+      },
+      "recordedBy": {
+        "id": "u-coord-1",
+        "phone": "0911000001",
+        "email": "coordinator.homs@bloodnet.sy"
+      }
+    }
+  ]
+}
+```
+
+### 4.6 EligibleDonorsResponse (`GET /requests/:id/eligible-donors` — FR-9, R-7, R-8)
+
+```json
+{
+  "requestId": "req-101",
+  "bloodTypeNeeded": "A-",
+  "area": { "id": "area-homs", "name": "Homs" },
+  "eligibleDonors": [
+    {
+      "rank": 1,
+      "id": "dp-sara",
+      "fullName": "Sara Al-Khatib",
+      "phone": "0933112233",
+      "bloodType": "A-",
+      "isExactBloodMatch": true,
+      "area": { "id": "area-homs", "name": "Homs" },
+      "lastDonationDate": null,
+      "hasActivePledgeForThisRequest": false
+    },
+    {
+      "rank": 2,
+      "id": "dp-omar",
+      "fullName": "Omar Mansour",
+      "phone": "0944556677",
+      "bloodType": "O-",
+      "isExactBloodMatch": false,
+      "area": { "id": "area-homs", "name": "Homs" },
+      "lastDonationDate": "2026-06-10",
+      "hasActivePledgeForThisRequest": false
+    }
+  ],
+  "excludedSummary": {
+    "restPeriod": 1,
+    "unavailable": 1,
+    "inactive": 0
+  }
+}
+```
+
+### 4.7 DonorDashboardProfile (`GET /donors/me` — FR-3, FR-4, R-24)
+
+```json
+{
+  "id": "dp-sara",
+  "userId": "u-donor-sara",
+  "fullName": "Sara Al-Khatib",
+  "phone": "0933112233",
+  "email": "sara@example.com",
+  "bloodType": "A-",
+  "area": { "id": "area-homs", "name": "Homs" },
+  "isAvailable": true,
+  "isActive": true,
+  "lastDonationDate": "2026-11-01",
+  "nextAllowedDonationDate": "2026-12-27",
+  "eligibilityStatus": "REST_PERIOD",
+  "activePledge": null,
+  "donationHistory": [
+    {
+      "id": "don-901",
+      "donationDate": "2026-11-01",
+      "units": 1,
+      "request": {
+        "id": "req-101",
+        "bloodType": "A-",
+        "hospital": "Central Blood Bank Homs",
+        "area": { "id": "area-homs", "name": "Homs" }
+      }
+    }
+  ]
+}
+```
+
+When the donor has an active `PLEDGED` pledge, `activePledge` has the shape:
+
+```json
+{
+  "id": "plg-501",
+  "status": "PLEDGED",
+  "createdAt": "2026-11-01T09:45:00.000Z",
+  "request": {
+    "id": "req-101",
+    "bloodType": "A-",
+    "area": { "id": "area-homs", "name": "Homs" },
+    "urgency": "CRITICAL",
+    "hospital": "Central Blood Bank Homs",
+    "unitsRequired": 3,
+    "unitsCollected": 0,
+    "unitsStillNeeded": 3,
+    "status": "OPEN"
+  }
+}
+```
+
+### 4.8 EligibleOpenRequest (`GET /donors/me/eligible-requests` item — FR-10)
+
+```json
+{
+  "id": "req-101",
+  "bloodType": "A-",
+  "area": { "id": "area-homs", "name": "Homs" },
+  "urgency": "CRITICAL",
+  "hospital": "Central Blood Bank Homs",
+  "unitsRequired": 3,
+  "unitsCollected": 0,
+  "unitsStillNeeded": 3,
+  "activePledgesCount": 1,
+  "canPledge": true,
+  "createdAt": "2026-11-01T09:10:00.000Z"
+}
+```
+
+## 5. GET /areas
+
+Returns the fixed list of supported areas ordered alphabetically by `name`.
+
+```http
+GET /api/areas
+```
+
+```text
+200 OK    → Area[]
+```
+
+Public endpoint (`@Public()`). Used by the Donor Sign-Up page, Donor Profile page, and Coordinator Request filters/creation form.
+
+## 6. Authentication Endpoints (`/auth`)
+
+Owner: **Eyad Ibrahim**.
+
+### 6.1 POST /auth/sign-up
+
+Registers a new volunteer donor account, hashes the password with `bcrypt`, creates both the `User` (`role: 'DONOR'`) and `DonorProfile` in one Prisma transaction, and returns an `AuthResponse` (`201 Created`).
+
+```http
+POST /api/auth/sign-up
+Content-Type: application/json
+```
+
+```json
+{
+  "fullName": "Sara Al-Khatib",
+  "phone": "0933112233",
+  "email": "sara@example.com",
+  "password": "DonorPassword123",
+  "bloodType": "A-",
+  "areaId": "area-homs"
+}
+```
+
+(`email` is optional; if provided, it is trimmed and lowercased.)
+
+#### Checks (in this exact order)
+
+**Part 1 — Format (`SignUpDto`):**
+
+1. `fullName` is a non-empty string after trimming
+2. `phone` is normalized (`normalizePhone`) and matches `@IsValidPhone()`
+3. `email` (if provided) is a valid email address
+4. `password` is a string of at least 8 characters
+5. `bloodType` is a valid blood type (`@IsValidBloodType()`: `'O-' | 'O+' | 'A-' | 'A+' | 'B-' | 'B+' | 'AB-' | 'AB+'`)
+6. `areaId` is a non-empty string
+
+**Part 2 — Rules (`AuthService.signUp`):**
+
+7. `areaId` exists in the `Area` table (`400`)
+8. `phone` is not already registered (`409`)
+9. `email` (if provided) is not already registered (`409`)
+
+#### Errors
+
+| Problem | Status | Message |
+| --- | --- | --- |
+| Missing `fullName` | 400 | `Full name is required.` |
+| Missing or invalid `phone` | 400 | `A valid phone number is required.` |
+| Invalid `email` format | 400 | `Please provide a valid email address.` |
+| `password` shorter than 8 characters | 400 | `Password must be at least 8 characters long.` |
+| Missing or unknown `bloodType` | 400 | `Invalid blood type. Must be one of O-, O+, A-, A+, B-, B+, AB-, AB+.` |
+| Missing `areaId` | 400 | `Area is required.` |
+| `areaId` does not exist in DB | 400 | `Selected area is not supported.` |
+| `phone` already registered | 409 | `An account with this phone number is already registered.` |
+| `email` already registered | 409 | `An account with this email address is already registered.` |
+
+### 6.2 POST /auth/sign-in
+
+Authenticates a `COORDINATOR` or `DONOR` using `identifier` (phone number or email) and `password`.
+
+```http
+POST /api/auth/sign-in
+Content-Type: application/json
+```
+
+```json
+{
+  "identifier": "0933112233",
+  "password": "DonorPassword123"
+}
+```
+
+```text
+200 OK    → AuthResponse (section 4.2)
+```
+
+Per Section 13 ("Sign-in with a wrong password — Rejected as unauthorized, without saying which part was wrong"), a wrong identifier and a wrong password return the **exact same `401` message**.
+
+| Problem | Status | Message |
+| --- | --- | --- |
+| Missing `identifier` | 400 | `Phone number or email is required.` |
+| Missing `password` | 400 | `Password is required.` |
+| Unknown identifier or wrong password | 401 | `Invalid credentials. Please check your phone/email and password.` |
+| Account deactivated (`isActive === false`) | 403 | `This account has been deactivated.` |
+
+### 6.3 GET /auth/me
+
+Returns the `AuthUser` object for the currently authenticated JWT token.
+
+```http
+GET /api/auth/me
+Authorization: Bearer <accessToken>
+```
+
+```text
+200 OK    → AuthUser
+```
+
+## 7. GET /requests/sos (Public SOS Board)
+
+Owner: **Adham Albasha**.
+
+Returns all `OPEN` blood requests ordered by:
+
+1. `urgency`: `CRITICAL` first, then `HIGH`, then `NORMAL`
+2. `createdAt`: oldest first (`ASC`)
+
+```http
+GET /api/requests/sos
+```
+
+```text
+200 OK    → PublicSosRequest[] (section 4.3)
+```
+
+- Public endpoint (`@Public()`).
+- Enforces **FR-8** and **R-23**: returns **only** `id`, `bloodType`, `area`, `urgency`, `hospital`, `unitsStillNeeded`, and `createdAt`.
+- When there are no `OPEN` requests, returns `200 OK` with `[]` (Section 13: "The SOS board when there are no open requests — Empty state, not an error").
+
+## 8. POST /requests (Publish an SOS Request)
+
+Owner: **Adham Albasha**. Role: `COORDINATOR`.
+
+Creates a new blood request with `status: 'OPEN'` and `unitsCollected: 0` (Flow A, FR-5).
+
+```http
+POST /api/requests
+Authorization: Bearer <coordinatorToken>
+Content-Type: application/json
+```
+
+```json
+{
+  "patientReference": "HOMS-ICU-402",
+  "bloodType": "A-",
+  "unitsRequired": 3,
+  "areaId": "area-homs",
+  "urgency": "CRITICAL",
+  "hospital": "Central Blood Bank Homs",
+  "note": "Emergency surgery in Ward 3."
+}
+```
+
+### Success
+
+```text
+201 Created    → CoordinatorRequestDetails (with status "OPEN", unitsCollected 0, unitsStillNeeded = unitsRequired)
+```
+
+Logs domain event via `AppLogger.logRequestCreated(request.id, request.bloodType, request.unitsRequired, request.area.name, request.urgency)`.
+
+### Checks (in this exact order)
+
+**Part 1 — Format (`CreateRequestDto`):**
+
+1. `patientReference` is a non-empty string (trimmed)
+2. `bloodType` is valid (`@IsValidBloodType()`)
+3. `unitsRequired` is an integer (`@IsInt()`) between `1` and `10` (`@Min(1)`, `@Max(10)`)
+4. `areaId` is a non-empty string
+5. `urgency` is one of `'CRITICAL'`, `'HIGH'`, `'NORMAL'`
+6. `hospital` is a non-empty string (trimmed)
+7. `note` (optional) is a string
+
+**Part 2 — Rules (`RequestsService.createRequest`):**
+
+8. `areaId` exists in the `Area` table (`400`)
+9. No existing `OPEN` request has the same `patientReference` (case-insensitive trimmed match) **and** the same `bloodType` (R-13, `409`)
+
+### Errors
+
+| Problem | Status | Message |
+| --- | --- | --- |
+| Missing `patientReference` | 400 | `Patient reference is required.` |
+| Invalid `bloodType` | 400 | `Invalid blood type. Must be one of O-, O+, A-, A+, B-, B+, AB-, AB+.` |
+| `unitsRequired` not an integer or outside 1–10 | 400 | `Units required must be a whole number between 1 and 10.` |
+| Missing `areaId` | 400 | `Area is required.` |
+| Invalid `urgency` | 400 | `Urgency must be CRITICAL, HIGH, or NORMAL.` |
+| Missing `hospital` | 400 | `Hospital or blood-bank name is required.` |
+| Unknown `areaId` | 400 | `Selected area is not supported.` |
+| Duplicate `OPEN` request with same `patientReference` and `bloodType` (R-13) | 409 | `An open request for this patient reference and blood type already exists.` |
+
+## 9. GET /requests & GET /requests/:id
+
+Owner: **Adham Albasha**. Role: `COORDINATOR`.
+
+### 9.1 GET /requests
+
+Lists all blood requests for coordinators, supporting optional query filters (`status`, `bloodType`, `areaId`, `urgency`) (FR-7). Ordered by `createdAt DESC`.
+
+```http
+GET /api/requests?status=OPEN&bloodType=A-&areaId=area-homs&urgency=CRITICAL
+Authorization: Bearer <coordinatorToken>
+```
+
+```text
+200 OK    → CoordinatorRequestSummary[] (section 4.4)
+```
+
+| Problem | Status | Message |
+| --- | --- | --- |
+| Invalid `status` query value | 400 | `Invalid status filter. Must be OPEN, FULFILLED, or CANCELLED.` |
+| Invalid `bloodType` query value | 400 | `Invalid blood type. Must be one of O-, O+, A-, A+, B-, B+, AB-, AB+.` |
+| Invalid `urgency` query value | 400 | `Urgency must be CRITICAL, HIGH, or NORMAL.` |
+
+### 9.2 GET /requests/:id
+
+Returns full details of one blood request, including `unitsRequired`, `unitsCollected`, `unitsStillNeeded`, `pledges`, and `donations` (FR-13).
+
+```http
+GET /api/requests/req-101
+Authorization: Bearer <coordinatorToken>
+```
+
+```text
+200 OK    → CoordinatorRequestDetails (section 4.5)
+```
+
+Unknown request ID returns `404 Not Found` with `{ "message": "Blood request not found." }`.
+
+## 10. PATCH /requests/:id & PATCH /requests/:id/cancel
+
+Owner: **Adham Albasha**. Role: `COORDINATOR`.
+
+### 10.1 PATCH /requests/:id
+
+Updates an `OPEN` request's `unitsRequired`, `urgency`, and/or `note` (FR-6, R-9..R-14, R-18).
+
+```http
+PATCH /api/requests/req-101
+Authorization: Bearer <coordinatorToken>
+Content-Type: application/json
+```
+
+```json
+{
+  "unitsRequired": 2,
+  "urgency": "HIGH",
+  "note": "Updated unit count after cross-match."
+}
+```
+
+```text
+200 OK    → updated CoordinatorRequestDetails
+```
+
+#### Rules checked in order (`RequestsService.updateRequest`)
+
+1. The request exists (`404 Blood request not found.`).
+2. The request `status === 'OPEN'` (R-9, R-14). If `FULFILLED` or `CANCELLED`, reject with `409`.
+3. If `unitsRequired` is provided, it must be `>= request.unitsCollected` (R-12). If `unitsRequired < request.unitsCollected`, reject with `400`.
+4. **Automatic Fulfillment on Reduction (R-11, R-18)**: If `unitsRequired === request.unitsCollected` (and `unitsCollected > 0`), inside `prisma.$transaction`, the request `status` automatically becomes `'FULFILLED'`, all remaining `'PLEDGED'` pledges on this request are updated to `'RELEASED'`, and `AppLogger.logRequestFulfilled(request.id)` is called.
+
+| Problem | Status | Message |
+| --- | --- | --- |
+| `unitsRequired` outside 1–10 or not an integer | 400 | `Units required must be a whole number between 1 and 10.` |
+| Invalid `urgency` | 400 | `Urgency must be CRITICAL, HIGH, or NORMAL.` |
+| Unknown request | 404 | `Blood request not found.` |
+| Request is `FULFILLED` or `CANCELLED` (R-9, R-14) | 409 | `Only OPEN requests can be updated.` |
+| `unitsRequired < unitsCollected` (R-12) | 400 | `Units required cannot be reduced below the units already collected.` |
+
+### 10.2 PATCH /requests/:id/cancel
+
+Cancels an `OPEN` request with a required `cancelReason` (Flow E, FR-6, R-9, R-14, R-18).
+
+```http
+PATCH /api/requests/req-101/cancel
+Authorization: Bearer <coordinatorToken>
+Content-Type: application/json
+```
+
+```json
+{
+  "cancelReason": "Patient transferred to Damascus University Hospital."
+}
+```
+
+```text
+200 OK    → updated CoordinatorRequestDetails (status: "CANCELLED", all PLEDGED pledges now "RELEASED")
+```
+
+Inside `prisma.$transaction`:
+
+1. Updates the request `status` to `'CANCELLED'` and stores `cancelReason`.
+2. Updates all `'PLEDGED'` pledges for this request to `'RELEASED'` (R-18).
+3. Logs the cancellation via `AppLogger.logRequestCancelled(request.id, dto.cancelReason)`.
+
+| Problem | Status | Message |
+| --- | --- | --- |
+| Missing or empty `cancelReason` | 400 | `Cancellation reason is required.` |
+| Unknown request | 404 | `Blood request not found.` |
+| Request is already `FULFILLED` or `CANCELLED` (R-9, R-14) | 409 | `Only OPEN requests can be cancelled.` |
+
+## 11. GET /requests/:id/eligible-donors
+
+Owner: **Adham Albasha** (controller/route) & **Eyad Ibrahim** (`MatchingService.getEligibleDonorsForRequest`). Role: `COORDINATOR`.
+
+Returns the ranked list of eligible donors for an `OPEN` request alongside the excluded-donor summary grouped by reason (Flow B, FR-9, R-1..R-8).
+
+```http
+GET /api/requests/req-101/eligible-donors
+Authorization: Bearer <coordinatorToken>
+```
+
+```text
+200 OK    → EligibleDonorsResponse (section 4.6)
+```
+
+### How Matching, Exclusion Counting, and Ranking Work (R-1..R-8)
+
+1. Verify the request exists (`404`) and its `status === 'OPEN'` (`409` if `FULFILLED` or `CANCELLED`, R-9).
+2. Query all donors whose `areaId === request.areaId` and whose `bloodType` is in `BLOOD_COMPATIBILITY_MAP[request.bloodType]` (R-1, R-6).
+3. Evaluate each compatible same-area donor in this exact priority order to classify them as either **Eligible** or **Excluded** (R-6, R-8):
+   - If `!donor.user.isActive` → increment `excludedSummary.inactive`
+   - Else if `isInRestPeriod(donor.lastDonationDate, ClockService.now())` → increment `excludedSummary.restPeriod`
+   - Else if `!donor.isAvailable` → increment `excludedSummary.unavailable`
+   - Else → donor is **Eligible**
+4. Sort the **Eligible** donors according to **R-7**:
+   - **Rule 1 (Exact match first)**: `isExactBloodMatch = (donor.bloodType === request.bloodType)` (`true` comes before `false`).
+   - **Rule 2 (Longest since last donation / never donated first)**: Within each group, `lastDonationDate === null` comes first; otherwise older `lastDonationDate` (`ASC`) comes before newer `lastDonationDate`.
+   - **Rule 3 (Alphabetical by name)**: Tie-breaker using `donor.fullName.localeCompare(other.fullName)`.
+5. Assign 1-based `rank` (`1, 2, 3, ...`) and return `{ requestId, bloodTypeNeeded, area, eligibleDonors, excludedSummary }`.
+
+| Problem | Status | Message |
+| --- | --- | --- |
+| Unknown request | 404 | `Blood request not found.` |
+| Request is `FULFILLED` or `CANCELLED` (R-9) | 409 | `Eligible donors can only be matched for OPEN requests.` |
+
+## 12. POST /requests/:id/donations (Record a Completed Donation)
+
+Owner: **Adham Albasha** (with Eyad's `MatchingService`). Role: `COORDINATOR`.
+
+Records a completed 1-unit donation for a donor on an `OPEN` request inside a **single database transaction** (Flow D, FR-12, R-19..R-22).
+
+```http
+POST /api/requests/req-101/donations
+Authorization: Bearer <coordinatorToken>
+Content-Type: application/json
+```
+
+```json
+{
+  "donorId": "dp-sara",
+  "donationDate": "2026-11-01"
+}
+```
+
+### Success
+
+```text
+201 Created    → updated CoordinatorRequestDetails (reflecting incremented unitsCollected, completed pledge, new donation, and FULFILLED status + released pledges if target reached)
+```
+
+### Checks & Transaction Steps (in this exact order)
+
+**Part 1 — Format (`RecordDonationDto`):**
+
+1. `donorId` is a non-empty string
+2. `donationDate` is a valid calendar date `YYYY-MM-DD` (`@IsCalendarDate()`)
+
+**Part 2 — Pre-Transaction Verification (`DonationsService.recordDonation`):**
+
+3. Request exists (`404 Blood request not found.`).
+4. Request `status === 'OPEN'` (`409 Donations can only be recorded for OPEN requests.` — R-9, R-19).
+5. `donationDate` is not in the future compared to `ClockService.now()` (`400 The donation date cannot be in the future.` — R-21).
+6. Donor exists (`404 Donor not found.`).
+7. Donor is currently eligible for this request at the moment of recording via `MatchingService.checkDonorEligibilityForRequest(donor, request, ClockService.now())` (R-19). If ineligible, call `AppLogger.warnDonationRejected(requestId, donorId, check.reason)` and throw `400 Bad Request` with `check.reason`.
+
+**Part 3 — Atomic Database Transaction (`prisma.$transaction`, R-22):**
+
+All of the following operations execute inside a single `prisma.$transaction(async (tx) => { ... })`:
+
+1. Create the `Donation` record (`units: 1`, `donationDate`, `requestId`, `donorId`, `recordedById: coordinatorId`) (R-20).
+2. Increment `request.unitsCollected` by `1`.
+3. If the donor has an active `'PLEDGED'` pledge on this request, update that pledge's `status` to `'COMPLETED'`.
+4. Update the donor's `lastDonationDate` to `donationDate` (or the newer of `lastDonationDate` and `donationDate`), starting their 56-day rest period (R-3, R-4).
+5. If `newUnitsCollected === request.unitsRequired`:
+   - Update `request.status` to `'FULFILLED'` (R-11).
+   - Update all remaining `'PLEDGED'` pledges on this request to `'RELEASED'` (R-18).
+6. If any step inside the transaction throws an error, PostgreSQL rolls back the entire transaction so nothing is saved (R-22).
+
+After the transaction commits, log `AppLogger.logDonationRecorded(donation.id, requestId, donorId)` (and `AppLogger.logRequestFulfilled(requestId)` if fulfilled).
+
+### Errors
+
+| Problem | Status | Message |
+| --- | --- | --- |
+| Missing `donorId` | 400 | `Donor ID is required.` |
+| Invalid `donationDate` format | 400 | `Invalid date. Use the format YYYY-MM-DD.` |
+| Unknown request | 404 | `Blood request not found.` |
+| Request is `FULFILLED` or `CANCELLED` (R-19) | 409 | `Donations can only be recorded for OPEN requests.` |
+| `donationDate` is in the future (R-21) | 400 | `The donation date cannot be in the future.` |
+| Unknown donor | 404 | `Donor not found.` |
+| Donor account is inactive (R-6, R-19) | 400 | `This donor account is deactivated and cannot donate.` |
+| Donor is marked unavailable (R-6, R-19) | 400 | `This donor is currently marked as unavailable.` |
+| Donor is in rest period (R-6, R-19) | 400 | `This donor is in rest period until YYYY-MM-DD.` |
+| Donor blood type is incompatible (R-1, R-6, R-19) | 400 | `This donor's blood type (<donorType>) is not compatible with <neededType>.` |
+| Donor is in a different area (R-6, R-19) | 400 | `This donor is in <donorArea>, but the request is in <requestArea>.` |
+
+## 13. Donor Endpoints (`/donors`)
+
+Owner: **Laith Haj Hosin** (with Eyad's `MatchingService`).
+
+### 13.1 GET /donors/me
+
+Role: `DONOR`. Returns the signed-in donor's profile, calculated `eligibilityStatus`, `nextAllowedDonationDate`, `activePledge` (if any), and `donationHistory` ordered by `donationDate DESC` (FR-3, FR-4, R-24).
+
+```http
+GET /api/donors/me
+Authorization: Bearer <donorToken>
+```
+
+```text
+200 OK    → DonorDashboardProfile (section 4.7)
+```
+
+### 13.2 PATCH /donors/me
+
+Role: `DONOR`. Updates the signed-in donor's `areaId`, `phone`, and/or `isAvailable` flag (FR-3, R-24).
+
+```http
+PATCH /api/donors/me
+Authorization: Bearer <donorToken>
+Content-Type: application/json
+```
+
+```json
+{
+  "areaId": "area-homs",
+  "phone": "0933112233",
+  "isAvailable": false
+}
+```
+
+```text
+200 OK    → updated DonorDashboardProfile
+```
+
+| Problem | Status | Message |
+| --- | --- | --- |
+| Invalid `phone` format | 400 | `A valid phone number is required.` |
+| `isAvailable` is not a boolean | 400 | `Availability must be a boolean value.` |
+| `areaId` does not exist in DB | 400 | `Selected area is not supported.` |
+| `phone` already used by another user | 409 | `An account with this phone number is already registered.` |
+
+### 13.3 PATCH /donors/me/deactivate
+
+Role: `DONOR`. Deactivates the signed-in donor's account (`user.isActive = false`, `donorProfile.isAvailable = false`) and automatically changes any active `PLEDGED` pledge held by the donor to `WITHDRAWN` inside a transaction (FR-3, R-24).
+
+```http
+PATCH /api/donors/me/deactivate
+Authorization: Bearer <donorToken>
+```
+
+```text
+200 OK    → { "message": "Your account has been deactivated." }
+```
+
+### 13.4 GET /donors/me/eligible-requests
+
+Role: `DONOR`. Returns all `OPEN` requests that the signed-in donor is currently eligible to help with (`MatchingService.checkDonorEligibilityForRequest` returns `eligible: true`), ordered like the SOS board (`CRITICAL` → `HIGH` → `NORMAL`, then `createdAt ASC`) (Flow C, FR-10).
+
+- If the donor is currently in their rest period, unavailable, or inactive, returns `200 OK` with `[]`.
+- Each item includes `canPledge: boolean`, which is `true` when the donor does not already hold an active `PLEDGED` pledge and `activePledgesCount < unitsStillNeeded`.
+
+```http
+GET /api/donors/me/eligible-requests
+Authorization: Bearer <donorToken>
+```
+
+```text
+200 OK    → EligibleOpenRequest[] (section 4.8)
+```
+
+### 13.5 GET /donors
+
+Role: `COORDINATOR`. Lists all donor profiles for coordinators (Section 5 Role Table: "Coordinator Can: view all donors"), ordered by `fullName ASC`.
+
+```http
+GET /api/donors
+Authorization: Bearer <coordinatorToken>
+```
+
+```text
+200 OK    → CoordinatorDonorItem[]
+```
+
+## 14. Pledge Endpoints (`/requests/:id/pledges` & `/pledges/:id/withdraw`)
+
+Owner: **Laith Haj Hosin** (with Eyad's `MatchingService`). Role: `DONOR`.
+
+### 14.1 POST /requests/:id/pledges
+
+Creates an active `PLEDGED` pledge for the signed-in donor on an `OPEN` request (Flow C, FR-11, R-15..R-17).
+
+```http
+POST /api/requests/req-101/pledges
+Authorization: Bearer <donorToken>
+```
+
+```text
+201 Created    → DonorActivePledge (section 4.7)
+```
+
+#### Rules checked in this exact order (`PledgesService.createPledge`)
+
+1. Request exists (`404 Blood request not found.`).
+2. Request `status === 'OPEN'` (R-9, R-15). If `FULFILLED` or `CANCELLED`, throw `409`.
+3. Signed-in donor has no existing `'PLEDGED'` pledge across **any** request (R-16). If they already hold an active pledge, throw `409`.
+4. Signed-in donor is eligible for this request via `MatchingService.checkDonorEligibilityForRequest(donor, request, ClockService.now())` (R-6, R-15). If ineligible, throw `400 Bad Request` with the exact reason (including `nextAllowedDonationDate` when in rest period: `"You are in rest period until YYYY-MM-DD."`).
+5. The count of active `'PLEDGED'` pledges on this request is strictly less than `unitsStillNeeded` (`request.unitsRequired - request.unitsCollected`) (R-17). If `activePledgesCount >= unitsStillNeeded`, throw `409`.
+
+| Problem | Status | Message |
+| --- | --- | --- |
+| Unknown request | 404 | `Blood request not found.` |
+| Request is `FULFILLED` or `CANCELLED` (R-9, R-15) | 409 | `Pledges can only be made for OPEN requests.` |
+| Donor already has an active `PLEDGED` pledge (R-16) | 409 | `You already have an active pledge. You can hold at most one active pledge at a time.` |
+| Donor is in rest period (R-4, R-6, R-15) | 400 | `You cannot pledge while in rest period. Your next allowed donation date is YYYY-MM-DD.` |
+| Donor is marked unavailable (R-6, R-15) | 400 | `You cannot pledge while your availability is set to unavailable.` |
+| Donor blood type is incompatible (R-1, R-6, R-15) | 400 | `Your blood type (<donorType>) is not compatible with this request (<neededType>).` |
+| Donor is in another area (R-6, R-15) | 400 | `You can only pledge to requests in your registered area (<donorArea>).` |
+| Active pledges already equal `unitsStillNeeded` (R-17) | 409 | `This request already has enough active pledges for all remaining units needed.` |
+
+### 14.2 PATCH /pledges/:id/withdraw
+
+Allows a donor to withdraw their own active `PLEDGED` pledge, setting its `status` to `'WITHDRAWN'` (Flow C, FR-11, R-24).
+
+```http
+PATCH /api/pledges/plg-501/withdraw
+Authorization: Bearer <donorToken>
+```
+
+```text
+200 OK    → { "id": "plg-501", "status": "WITHDRAWN" }
+```
+
+| Problem | Status | Message |
+| --- | --- | --- |
+| Unknown pledge | 404 | `Pledge not found.` |
+| Pledge belongs to another donor (R-24) | 403 | `You can only withdraw your own pledge.` |
+| Pledge is not in `PLEDGED` status (`COMPLETED`, `WITHDRAWN`, or `RELEASED`) | 409 | `Only active PLEDGED pledges can be withdrawn.` |
+
+## 15. Calculated Values
+
+The backend calculates these on every read. The frontend never calculates them:
+
+```text
+unitsStillNeeded:
+  Math.max(0, request.unitsRequired - request.unitsCollected)   (R-10)
+
+nextAllowedDonationDate:
+  lastDonationDate === null
+    ? null                                                      (R-5)
+    : addDays(lastDonationDate, REST_PERIOD_DAYS)               (R-3, R-4, where REST_PERIOD_DAYS = 56)
+
+isInRestPeriod:
+  lastDonationDate !== null AND today < nextAllowedDonationDate (R-4)
+
+eligibilityStatus (Donor):
+  !user.isActive      → 'INACTIVE'
+  isInRestPeriod      → 'REST_PERIOD'
+  !donor.isAvailable  → 'UNAVAILABLE'
+  otherwise           → 'ELIGIBLE'
+
+isExactBloodMatch:
+  donor.bloodType === request.bloodType                         (R-7)
+```
+
+## 16. Validation Rules
+
+The **format** rules are checked by the DTO classes (`class-validator`). The **business** rules are checked by the services.
+
+- **Unknown fields**: Rejected globally by `ValidationPipe` (`whitelist: true`, `forbidNonWhitelisted: true`) with `400 Bad Request` — `{ "message": "Unknown field '<field>' is not allowed." }`.
+- **Phone**: Spaces and dashes are removed first via `normalizePhone`. Must match an optional `+` followed by 8 to 15 digits (`0933112233` or `+963933112233`).
+- **Blood Type**: Must be one of `'O-'`, `'O+'`, `'A-'`, `'A+'`, `'B-'`, `'B+'`, `'AB-'`, `'AB+'`.
+- **Units Required**: Must be an integer (`1` to `10`). Decimals (`2.5`), strings (`"3"`), `0`, negative numbers, and numbers `> 10` are rejected with `400`.
+- **Calendar Date (`donationDate`)**: `YYYY-MM-DD` and a real calendar date (`2026-02-31` is rejected).
+
+## 17. Errors, Logger & Swagger
+
+### Error Shape
+
+Every error from every endpoint leaves the API in this exact shape (`AllExceptionsFilter`):
+
+```json
+{ "message": "Human-readable reason." }
+```
+
+| Status | Meaning |
+| --- | --- |
+| 200 | Success |
+| 201 | Resource created (donor account, blood request, pledge, donation) |
+| 400 | Invalid input format, unknown field, or eligibility/validation rule broken |
+| 401 | Missing/invalid JWT or wrong sign-in credentials |
+| 403 | Valid JWT, but role is not allowed or accessing another donor's resource |
+| 404 | Request, donor, pledge, or endpoint not found |
+| 409 | State conflict (duplicate phone/email, duplicate OPEN request, non-OPEN request, active pledge limit reached) |
+| 500 | Unexpected server error (`{ "message": "Something went wrong. Please try again." }`) |
+
+### Custom Logger (`AppLogger`)
+
+Per Section 12 ("Logger: log meaningful events — request created, cancelled and fulfilled, donation recorded, and rejected donation attempts with the reason. Do not log every request, and never log passwords or tokens"):
+
+- `REQUEST_CREATED`: logged when `POST /api/requests` succeeds
+- `REQUEST_CANCELLED`: logged when `PATCH /api/requests/:id/cancel` succeeds
+- `REQUEST_FULFILLED`: logged when `unitsCollected` reaches `unitsRequired` (via donation or request update)
+- `DONATION_RECORDED`: logged when `POST /api/requests/:id/donations` commits
+- `DONATION_REJECTED`: logged at `WARN` level when `POST /api/requests/:id/donations` is rejected due to an ineligible donor, non-open request, or future date, including the exact rejection reason
+
+### Swagger (`/api/docs`)
+
+Every controller uses `@ApiTags(...)`, every endpoint uses `@ApiOperation({ summary: '...' })` and `@ApiResponse(...)`, every protected endpoint uses `@ApiBearerAuth()`, and every DTO property uses `@ApiProperty(...)` / `@ApiPropertyOptional(...)`.
+
+## 18. Frontend API Service
+
+```text
+client/src/services/
+├── http.ts
+├── auth.api.ts
+├── donors.api.ts
+├── pledges.api.ts
+└── requests.api.ts
+```
+
+Functions:
+
+```ts
+// auth.api.ts (Molham)
+getAreas(): Promise<Area[]>
+signUpDonor(payload: SignUpPayload): Promise<AuthResponse>
+signIn(payload: SignInPayload): Promise<AuthResponse>
+getMe(): Promise<AuthUser>
+
+// donors.api.ts (Taymaa)
+getMyDonorProfile(): Promise<DonorDashboardProfile>
+updateMyDonorProfile(payload: UpdateDonorProfilePayload): Promise<DonorDashboardProfile>
+deactivateMyAccount(): Promise<{ message: string }>
+getMyEligibleRequests(): Promise<EligibleOpenRequest[]>
+getAllDonors(): Promise<CoordinatorDonorItem[]>
+
+// pledges.api.ts (Taymaa)
+createPledge(requestId: string): Promise<DonorActivePledge>
+withdrawPledge(pledgeId: string): Promise<{ id: string; status: PledgeStatus }>
+
+// requests.api.ts (Rami)
+getSosRequests(): Promise<PublicSosRequest[]>
+getRequests(filters?: RequestFilters): Promise<CoordinatorRequestSummary[]>
+getRequestById(requestId: string): Promise<CoordinatorRequestDetails>
+createRequest(payload: CreateRequestPayload): Promise<CoordinatorRequestDetails>
+updateRequest(requestId: string, payload: UpdateRequestPayload): Promise<CoordinatorRequestDetails>
+cancelRequest(requestId: string, payload: CancelRequestPayload): Promise<CoordinatorRequestDetails>
+getEligibleDonors(requestId: string): Promise<EligibleDonorsResponse>
+recordDonation(requestId: string, payload: RecordDonationPayload): Promise<CoordinatorRequestDetails>
+```
+
+Only the three React Contexts (`AuthContext`, `DonorContext`, `RequestsContext`) call these service functions. Pages and components use the context hooks.
+
+## 19. Testing Checklist (`api/requests/api.http`)
+
+Owner: **Laith Haj Hosin**. `api/requests/api.http` includes one runnable request for every item below (covering Sections 13 and 19 of the specification):
+
+- **Areas & Public SOS Board**:
+  1. `GET /api/areas` returns seeded areas (`200`).
+  2. `GET /api/requests/sos` returns `OPEN` requests ordered by `CRITICAL` → `HIGH` → `NORMAL` then oldest first, with zero personal data or patient references (`200`).
+- **Auth & Roles**:
+  3. `POST /api/auth/sign-up` valid donor registration (`201`) and immediate `GET /api/donors/me` (`200`).
+  4. `POST /api/auth/sign-up` with missing field, unknown blood type, or unknown area (`400`).
+  5. `POST /api/auth/sign-up` with duplicate phone or email (`409`).
+  6. `POST /api/auth/sign-in` as Coordinator (`200`) and as Donor (`200`).
+  7. `POST /api/auth/sign-in` with wrong password (`401` with generic message).
+  8. Protected endpoint called without a token (`401`).
+  9. Donor calling a coordinator-only operation (`POST /api/requests` or `GET /api/donors`) (`403`).
+- **Requests & Lifecycle**:
+  10. `POST /api/requests` valid `A-` request in Homs for 3 units (`201`).
+  11. `POST /api/requests` with `unitsRequired` outside `1–10` or non-integer (`400`), or with unknown field (`400`).
+  12. `POST /api/requests` second `OPEN` request with same `patientReference` and `bloodType` (`409`).
+  13. `GET /api/requests` with filters (`status`, `bloodType`, `areaId`, `urgency`) (`200`).
+  14. `PATCH /api/requests/:id` reducing `unitsRequired` below `unitsCollected` (`400`).
+  15. `PATCH /api/requests/:id` and `PATCH /api/requests/:id/cancel` on a `FULFILLED` or `CANCELLED` request (`409`).
+- **Matching & Eligible Donors**:
+  16. `GET /api/requests/:id/eligible-donors` for an `A-` request in Homs returns only active, available, non-resting `A-` and `O-` donors in Homs, ordered with `A-` before `O-`, oldest donation / never donated first, then by name, plus `excludedSummary` (`restPeriod`, `unavailable`, `inactive`) (`200`).
+- **Donor Profile & Pledges**:
+  17. `POST /api/requests/:id/pledges` by an eligible donor (`201`).
+  18. `POST /api/requests/:id/pledges` by a donor who already holds an active pledge (`409`).
+  19. `POST /api/requests/:id/pledges` by a donor in rest period (`400` including exact `nextAllowedDonationDate`), unavailable (`400`), incompatible blood type (`400`), or in another area (`400`).
+  20. `POST /api/requests/:id/pledges` when active pledges already equal `unitsStillNeeded` (`409`).
+  21. `PATCH /api/pledges/:id/withdraw` withdraws the pledge (`200`).
+- **Donations & Transactions**:
+  22. `POST /api/requests/:id/donations` for an eligible donor increases `unitsCollected` by 1, marks the donor's pledge `COMPLETED`, and sets `nextAllowedDonationDate` to `donationDate + 56 days` (`201`).
+  23. `POST /api/requests/:id/donations` for the final required unit automatically marks the request `FULFILLED` and sets all remaining `PLEDGED` pledges to `RELEASED` (`201`).
+  24. `POST /api/requests/:id/donations` for an ineligible donor (e.g., now in rest period) or with a future `donationDate` is rejected (`400`), logs a warning, and leaves the database unchanged.
+  25. Request or donor ID that does not exist returns `404`.
+
+## 20. Changing the Contract
+
+When an endpoint, DTO field, or response shape needs to change:
+
+1. Ask the team lead (Eyad Ibrahim) first.
+2. Update the backend implementation and Swagger decorators.
+3. Update this `docs/API.md`.
+4. Update `client/src/services/` and `client/src/types/`.
+5. Update `docs/PROJECT-STRUCTURE.md` if any type or method signature changed.
+6. Notify the affected frontend/backend pair in the team chat.
+
+Never change a response shape, a field name, or an error message silently.
