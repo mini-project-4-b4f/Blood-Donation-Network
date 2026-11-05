@@ -4,6 +4,7 @@ import ProtectedRoute from '../components/layout/ProtectedRoute';
 import SignInPage from '../pages/SignIn/SignInPage';
 import SignUpPage from '../pages/SignUp/SignUpPage';
 import SosBoardPage from '../pages/SosBoard/SosBoardPage';
+import NotFoundPage from '../pages/NotFound/NotFoundPage';
 
 function Placeholder({ title }: { title: string }) {
   return <section className="layout-prompt"><h1>{title}</h1><p>This workspace is coming soon.</p></section>;
@@ -23,6 +24,6 @@ export default function AppRouter() {
       <Route path="/coordinator/requests/:requestId" element={<Placeholder title="Request Details" />} />
       <Route path="/coordinator/requests/:requestId/eligible-donors" element={<Placeholder title="Eligible Donors" />} />
     </Route>
-    <Route path="*" element={<Placeholder title="Page Not Found" />} />
+    <Route path="*" element={<NotFoundPage />} />
   </Route></Routes></BrowserRouter>;
 }
