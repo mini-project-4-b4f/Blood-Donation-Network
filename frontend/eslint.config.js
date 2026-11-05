@@ -18,5 +18,13 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      'react-refresh/only-export-components': ['error', { allowExportNames: ['useAuth', 'useRequests'] }],
+    },
+  },
+  {
+    files: ['tests/**/*.mjs'],
+    extends: [js.configs.recommended],
+    languageOptions: { globals: globals.node },
   },
 ])
