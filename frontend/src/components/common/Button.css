@@ -1,0 +1,9 @@
+.ui-button { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border: 1px solid transparent; border-radius: 0.5rem; font-weight: 650; line-height: 1.4; text-decoration: none; transition: background 150ms; }
+.ui-button--sm { padding: 0.45rem 0.75rem; font-size: 0.85rem; }
+.ui-button--md { padding: 0.75rem 1.1rem; }
+.ui-button--lg { padding: 0.9rem 1.5rem; }
+.ui-button--primary, .ui-button--danger { background: var(--color-primary); color: var(--color-surface); }
+.ui-button--primary:hover:not(:disabled), .ui-button--danger:hover:not(:disabled) { background: var(--color-primary-dark); }
+.ui-button--secondary { background: var(--color-primary-light); color: var(--color-primary-dark); }
+.ui-button--outline { border-color: var(--color-border); color: var(--color-text); background: var(--color-surface); }
+.ui-button:disabled { opacity: 0.65; }
