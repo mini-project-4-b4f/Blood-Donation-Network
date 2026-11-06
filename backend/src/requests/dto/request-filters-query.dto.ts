@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString, IsNotEmpty } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class RequestFiltersQueryDto {
   @ApiPropertyOptional({
@@ -27,8 +28,9 @@ export class RequestFiltersQueryDto {
     example: 'area-homs',
   })
   @IsOptional()
-  @IsString()
-  @IsNotEmpty()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @IsString({ message: 'Area ID must be a string.' })
+  @IsNotEmpty({ message: 'Area ID cannot be empty.' })
   areaId?: string;
 
   @ApiPropertyOptional({

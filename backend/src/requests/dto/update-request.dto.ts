@@ -1,22 +1,23 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { MIN_UNITS, MAX_UNITS } from '../../common/constants';
 
 export class UpdateRequestDto {
   @ApiPropertyOptional({
     example: 4,
-    minimum: 1,
-    maximum: 10,
+    minimum: MIN_UNITS,
+    maximum: MAX_UNITS,
     description: 'Updated number of required blood units.',
   })
   @IsOptional()
   @IsInt({
     message: 'Units required must be a whole number between 1 and 10.',
   })
-  @Min(1, {
+  @Min(MIN_UNITS, {
     message: 'Units required must be a whole number between 1 and 10.',
   })
-  @Max(10, {
+  @Max(MAX_UNITS, {
     message: 'Units required must be a whole number between 1 and 10.',
   })
   unitsRequired?: number;

@@ -1,7 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
-  IsIn,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -9,6 +8,8 @@ import {
   Max,
   Min,
 } from 'class-validator';
+import { IsValidBloodType } from '../../common/validators';
+import { MIN_UNITS, MAX_UNITS } from '../../common/constants';
 
 export class CreateRequestDto {
   @ApiProperty({
@@ -24,10 +25,7 @@ export class CreateRequestDto {
     example: 'A-',
     enum: ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'],
   })
-  @IsIn(['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'], {
-    message:
-      'Invalid blood type. Must be one of O-, O+, A-, A+, B-, B+, AB-, AB+.',
-  })
+  @IsValidBloodType()
   bloodType: string;
 
   @ApiProperty({
@@ -38,10 +36,10 @@ export class CreateRequestDto {
   @IsInt({
     message: 'Units required must be a whole number between 1 and 10.',
   })
-  @Min(1, {
+  @Min(MIN_UNITS, {
     message: 'Units required must be a whole number between 1 and 10.',
   })
-  @Max(10, {
+  @Max(MAX_UNITS, {
     message: 'Units required must be a whole number between 1 and 10.',
   })
   unitsRequired: number;
@@ -59,9 +57,7 @@ export class CreateRequestDto {
     example: 'CRITICAL',
     enum: ['CRITICAL', 'HIGH', 'NORMAL'],
   })
-  @IsIn(['CRITICAL', 'HIGH', 'NORMAL'], {
-    message: 'Urgency must be CRITICAL, HIGH, or NORMAL.',
-  })
+  @IsValidBloodType()
   urgency: string;
 
   @ApiProperty({
