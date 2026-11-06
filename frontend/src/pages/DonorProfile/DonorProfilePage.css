@@ -1,0 +1,232 @@
+
+.donor-profile { 
+  direction: ltr; 
+  text-align: left; 
+  width: min(100% - 32px, 720px); 
+  margin: 0 auto; 
+  padding: 32px 0 48px; 
+  color: #111a2f; 
+  font-family: "Segoe UI", Tahoma, Arial, sans-serif; 
+}
+
+
+.donor-profile__header-section {
+  margin-bottom: 24px;
+}
+
+.donor-profile__eyebrow {
+  display: block;
+  color: #e52529;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.donor-profile__title {
+  margin: 0;
+  color: #111a2f;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+
+.donor-profile-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 16px;
+  padding: 28px 30px;
+  border: 1px solid #dce4ef;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(17, 26, 47, .04);
+}
+
+.donor-profile-form__group {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.donor-profile-form__label {
+  color: #26354d;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+
+.donor-profile-form__input,
+.donor-profile-form__select { 
+  width: 100%; 
+  min-height: 48px; 
+  padding: 10px 13px; 
+  border: 1px solid #d4deeb; 
+  border-radius: 12px; 
+  outline: none; 
+  background: #fff; 
+  color: #26354d; 
+  font-size: 15px; 
+  text-align: left; 
+}
+
+.donor-profile-form__input:focus,
+.donor-profile-form__select:focus {
+  border-color: #637fa8;
+  box-shadow: 0 0 0 3px rgba(82, 120, 177, .13);
+}
+
+.donor-profile-form__input:disabled {
+  background: #f6f8fb;
+  color: #596a83;
+}
+
+.donor-profile-form__group--checkbox {
+  grid-column: 1 / -1;
+  display: block;
+  padding: 15px 16px;
+  border: 1px solid #dce4ef;
+  border-radius: 14px;
+  background: #f7f9fc;
+}
+
+.donor-profile-form__checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #26354d;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.donor-profile-form__checkbox-label input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #e52529;
+}
+
+.donor-profile-btn {
+  min-height: 46px;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.donor-profile-btn--primary {
+  grid-column: 1 / -1;
+  background: #111a2f;
+  color: #fff;
+}
+
+.donor-profile-btn--danger {
+  background: #e52529;
+  color: #fff;
+}
+
+.donor-profile-btn--secondary {
+  background: #e8edf4;
+  color: #26354d;
+}
+
+.donor-profile-btn:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+.donor-profile-alert {
+  margin: 0 0 14px;
+  padding: 12px 15px;
+  border-radius: 10px;
+}
+
+.donor-profile-alert--success {
+  border: 1px solid #b9ead8;
+  background: #effaf5;
+  color: #00875f;
+}
+
+.donor-profile-alert--error {
+  border: 1px solid #ffcaca;
+  background: #fff3f3;
+  color: #b42327;
+}
+
+.donor-profile-divider {
+  height: 1px;
+  margin: 30px 0;
+  border: 0;
+  background: #e3e8f0;
+}
+
+.donor-profile-danger-zone {
+  padding: 26px 28px;
+  border: 1px solid #ffcaca;
+  border-radius: 22px;
+  background: #fff3f3;
+}
+
+.donor-profile-danger-zone__title {
+  margin: 0 0 9px;
+  color: #942323;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.donor-profile-danger-zone__desc {
+  margin: 0 0 18px;
+  color: #9e4b4b;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.donor-profile-confirm-box {
+  padding: 16px;
+  border: 1px solid #ffcaca;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.donor-profile-confirm-box p {
+  margin: 0 0 12px;
+  color: #26354d;
+}
+
+.donor-profile-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+
+.donor-profile-loading { 
+  direction: ltr; 
+  padding: 36px; 
+  text-align: center; 
+  color: #66758d; 
+}
+
+
+@media (max-width: 640px) {
+  .donor-profile {
+    width: calc(100% - 28px);
+    padding: 22px 0 32px;
+  }
+  .donor-profile-form {
+    grid-template-columns: 1fr;
+    padding: 20px 18px;
+    border-radius: 18px;
+  }
+  .donor-profile-form__group--checkbox,
+  .donor-profile-btn--primary {
+    grid-column: 1;
+  }
+  .donor-profile-danger-zone {
+    padding: 21px 18px;
+    border-radius: 18px;
+  }
+}
