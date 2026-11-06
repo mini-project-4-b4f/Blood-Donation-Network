@@ -38,6 +38,7 @@ GET {{baseUrl}}/auth/me
 Authorization: Bearer {{donorToken}}
 
 ### 3. Valid donor sign-up -> 201 (change the phone if you run it twice)
+# @name registeredDonor
 POST {{baseUrl}}/auth/sign-up
 Content-Type: application/json
 
@@ -49,6 +50,13 @@ Content-Type: application/json
   "bloodType": "B+",
   "areaId": "area-homs"
 }
+
+###
+@registeredDonorToken = {{registeredDonor.response.body.accessToken}}
+
+### 3b. Newly registered donor can immediately read their own profile -> 200
+GET {{baseUrl}}/donors/me
+Authorization: Bearer {{registeredDonorToken}}
 
 ### 4a. Sign-up with a missing field -> 400 "Full name is required."
 POST {{baseUrl}}/auth/sign-up
@@ -281,6 +289,20 @@ Content-Type: application/json
 
 { "cancelReason": "Second attempt." }
 
+### 18d. Update a CANCELLED request -> 409 "Only OPEN requests can be updated."
+PATCH {{baseUrl}}/requests/req-103
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "urgency": "HIGH" }
+
+### 18e. Cancel a FULFILLED request -> 409 "Only OPEN requests can be cancelled."
+PATCH {{baseUrl}}/requests/req-104/cancel
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "cancelReason": "This request is already fulfilled." }
+
 # =====================================================================
 # Donations (Step 5). Run the Coordinator sign-in (6a) first.
 # Seed scenario: req-101 = A-, 3 units, Homs, nobody has donated yet.
@@ -309,6 +331,13 @@ Authorization: Bearer {{coordinatorToken}}
 Content-Type: application/json
 
 { "donorId": "dp-zaid", "donationDate": "2026-11-02" }
+
+### 23a-2. Reducing units below units already collected -> 400
+PATCH {{baseUrl}}/requests/req-101
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "unitsRequired": 1 }
 
 ### 23b. Omar (O-, compatible with A-) = the 3rd and final unit -> 201: request becomes FULFILLED, unitsStillNeeded 0
 # [MODIFIES DATA]
@@ -620,12 +649,55 @@ Content-Type: application/json
 
 ### 23-2. Zaid takes the only free unit -> 201
 # [MODIFIES DATA]
+# @name zaidPledge
 POST {{baseUrl}}/requests/{{oneUnitRequestId}}/pledges
 Authorization: Bearer {{zaidToken}}
 
 ### 23-3. Omar (O-, compatible) tries the same request -> 409 "This request already has enough active pledges for all remaining units needed."
 POST {{baseUrl}}/requests/{{oneUnitRequestId}}/pledges
 Authorization: Bearer {{omarToken}}
+
+###
+@zaidPledgeId = {{zaidPledge.response.body.id}}
+
+### 23-4. Zaid withdraws so he can pledge to a separate request -> 200
+# [MODIFIES DATA]
+PATCH {{baseUrl}}/pledges/{{zaidPledgeId}}/withdraw
+Authorization: {{zaidToken}}
+
+### 23-5. Coordinator publishes a separate one-unit request for the pledge-release check -> 201
+# [MODIFIES DATA]
+# @name pledgeReleaseRequest
+POST {{baseUrl}}/requests
+Authorization: {{coordinatorToken}}
+Content-Type: application/json
+
+{ "patientReference": "HOMS-PLEDGE-RELEASE", "bloodType": "A-", "unitsRequired": 1, "areaId": "area-homs", "urgency": "NORMAL", "hospital": "Central Blood Bank Homs" }
+
+###
+@pledgeReleaseRequestId = {{pledgeReleaseRequest.response.body.id}}
+
+### 23-6. Zaid pledges to the release-check request -> 201
+# [MODIFIES DATA]
+POST {{baseUrl}}/requests/{{pledgeReleaseRequestId}}/pledges
+Authorization: {{zaidToken}}
+
+### 23-7. Omar's final-unit donation fulfills the request and releases Zaid's pledge -> 201
+# [MODIFIES DATA]
+POST {{baseUrl}}/requests/{{pledgeReleaseRequestId}}/donations
+Authorization: {{coordinatorToken}}
+Content-Type: application/json
+
+{ "donorId": "dp-omar", "donationDate": "2026-11-03" }
+
+### 23-8. The request is FULFILLED and Zaid's remaining pledge is RELEASED
+GET {{baseUrl}}/requests/{{pledgeReleaseRequestId}}
+Authorization: {{coordinatorToken}}
+
+### 23-9. Zaid pledges again to the original one-unit request -> 201 (needed for the deactivation check)
+# [MODIFIES DATA]
+POST {{baseUrl}}/requests/{{oneUnitRequestId}}/pledges
+Authorization: {{zaidToken}}
 
 ### 24-1. Zaid tries to withdraw SARA's pledge -> 403 "You can only withdraw your own pledge."
 PATCH {{baseUrl}}/pledges/{{saraPledgeId}}/withdraw
@@ -660,6 +732,10 @@ Authorization: Bearer {{coordinatorToken}}
 Content-Type: application/json
 
 { "donorId": "dp-sara", "donationDate": "2026-11-01" }
+
+### 24-7b. Sara's profile reflects the donation and 56-day next allowed date
+GET {{baseUrl}}/donors/me
+Authorization: Bearer {{donorToken}}
 
 # ---------------------------------------------------------------------
 # PATCH /donors/me/deactivate (last, because it locks the account)
