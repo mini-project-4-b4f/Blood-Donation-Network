@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  COORDINATOR
+  DONOR
+}
+
+enum BloodType {
+  O_NEG
+  O_POS
+  A_NEG
+  A_POS
+  B_NEG
+  B_POS
+  AB_NEG
+  AB_POS
+}
+
+enum Urgency {
+  CRITICAL
+  HIGH
+  NORMAL
+}
+
+enum RequestStatus {
+  OPEN
+  FULFILLED
+  CANCELLED
+}
+
+enum PledgeStatus {
+  PLEDGED
+  COMPLETED
+  WITHDRAWN
+  RELEASED
+}
+
+model Area {
+  id        String         @id @default(uuid())
+  name      String         @unique
+  donors    DonorProfile[]
+  requests  BloodRequest[]
+  createdAt DateTime       @default(now())
+}
+
+model User {
+  id                String         @id @default(uuid())
+  email             String?        @unique
+  phone             String         @unique
+  passwordHash      String
+  role              Role
+  isActive          Boolean        @default(true)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  donorProfile      DonorProfile?
+  createdRequests   BloodRequest[] @relation("CoordinatorRequests")
+  recordedDonations Donation[]     @relation("CoordinatorDonations")
+}
+
+model DonorProfile {
+  id               String     @id @default(uuid())
+  userId           String     @unique
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName         String
+  bloodType        BloodType
+  areaId           String
+  area             Area       @relation(fields: [areaId], references: [id])
+  isAvailable      Boolean    @default(true)
+  lastDonationDate DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  pledges          Pledge[]
+  donations        Donation[]
+}
+
+model BloodRequest {
+  id               String        @id @default(uuid())
+  patientReference String
+  bloodType        BloodType
+  unitsRequired    Int
+  unitsCollected   Int           @default(0)
+  areaId           String
+  area             Area          @relation(fields: [areaId], references: [id])
+  urgency          Urgency
+  status           RequestStatus @default(OPEN)
+  hospital         String
+  note             String?
+  cancelReason     String?
+  createdById      String
+  createdBy        User          @relation("CoordinatorRequests", fields: [createdById], references: [id])
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  pledges          Pledge[]
+  donations        Donation[]
+
+  @@index([status, urgency, createdAt])
+  @@index([patientReference, bloodType, status])
+}
+
+model Pledge {
+  id        String       @id @default(uuid())
+  donorId   String
+  donor     DonorProfile @relation(fields: [donorId], references: [id])
+  requestId String
+  request   BloodRequest @relation(fields: [requestId], references: [id])
+  status    PledgeStatus @default(PLEDGED)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([donorId, status])
+  @@index([requestId, status])
+}
+
+model Donation {
+  id           String       @id @default(uuid())
+  donorId      String
+  donor        DonorProfile @relation(fields: [donorId], references: [id])
+  requestId    String
+  request      BloodRequest @relation(fields: [requestId], references: [id])
+  recordedById String
+  recordedBy   User         @relation("CoordinatorDonations", fields: [recordedById], references: [id])
+  donationDate DateTime
+  units        Int          @default(1)
+  createdAt    DateTime     @default(now())
+
+  @@index([requestId])
+  @@index([donorId, donationDate])
+}

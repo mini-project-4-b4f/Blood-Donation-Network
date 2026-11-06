@@ -1,0 +1,690 @@
+# VS Code REST Client file. Extended step by step until it covers all 25 cases of docs/API.md section 19.
+@baseUrl = http://localhost:3000/api
+
+### 1. Areas (public) -> 200, 6 areas ordered by name
+GET {{baseUrl}}/areas
+
+### 6a. Sign in as Coordinator -> 200
+# @name coordinatorLogin
+POST {{baseUrl}}/auth/sign-in
+Content-Type: application/json
+
+{ "identifier": "0911000001", "password": "Coordinator123!" }
+
+###
+@coordinatorToken = {{coordinatorLogin.response.body.accessToken}}
+
+### 6b. Sign in as Donor (Sara) -> 200
+# @name donorLogin
+POST {{baseUrl}}/auth/sign-in
+Content-Type: application/json
+
+{ "identifier": "sara@example.com", "password": "DonorPassword123" }
+
+###
+@donorToken = {{donorLogin.response.body.accessToken}}
+
+### 7. Wrong password -> 401 (generic message)
+POST {{baseUrl}}/auth/sign-in
+Content-Type: application/json
+
+{ "identifier": "0933112233", "password": "WrongPassword" }
+
+### 8. Protected endpoint without a token -> 401
+GET {{baseUrl}}/auth/me
+
+### /auth/me with a token -> 200
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{donorToken}}
+
+### 3. Valid donor sign-up -> 201 (change the phone if you run it twice)
+POST {{baseUrl}}/auth/sign-up
+Content-Type: application/json
+
+{
+  "fullName": "Test Donor",
+  "phone": "0955000001",
+  "email": "test.donor@example.com",
+  "password": "DonorPassword123",
+  "bloodType": "B+",
+  "areaId": "area-homs"
+}
+
+### 4a. Sign-up with a missing field -> 400 "Full name is required."
+POST {{baseUrl}}/auth/sign-up
+Content-Type: application/json
+
+{ "phone": "0955000002", "password": "DonorPassword123", "bloodType": "B+", "areaId": "area-homs" }
+
+### 4b. Sign-up with an unknown blood type -> 400
+POST {{baseUrl}}/auth/sign-up
+Content-Type: application/json
+
+{ "fullName": "Test Donor", "phone": "0955000002", "password": "DonorPassword123", "bloodType": "C+", "areaId": "area-homs" }
+
+### 4c. Sign-up with an unknown area -> 400 "Selected area is not supported."
+POST {{baseUrl}}/auth/sign-up
+Content-Type: application/json
+
+{ "fullName": "Test Donor", "phone": "0955000002", "password": "DonorPassword123", "bloodType": "B+", "areaId": "area-unknown" }
+
+### 5a. Sign-up with a duplicate phone -> 409
+POST {{baseUrl}}/auth/sign-up
+Content-Type: application/json
+
+{ "fullName": "Another Sara", "phone": "0933112233", "password": "DonorPassword123", "bloodType": "A-", "areaId": "area-homs" }
+
+### 5b. Sign-up with a duplicate email -> 409
+POST {{baseUrl}}/auth/sign-up
+Content-Type: application/json
+
+{ "fullName": "Another Sara", "phone": "0955000003", "email": "sara@example.com", "password": "DonorPassword123", "bloodType": "A-", "areaId": "area-homs" }
+
+### Unknown field -> 400 "Unknown field 'role' is not allowed."
+POST {{baseUrl}}/auth/sign-up
+Content-Type: application/json
+
+{ "fullName": "Hacker", "phone": "0955000004", "password": "DonorPassword123", "bloodType": "A-", "areaId": "area-homs", "role": "COORDINATOR" }
+
+### Invalid JSON -> 400 "Invalid request body."
+POST {{baseUrl}}/auth/sign-in
+Content-Type: application/json
+
+{ "identifier": 
+
+# =====================================================================
+# Requests (Step 4). Run the Coordinator sign-in (6a) and Donor sign-in (6b) first.
+# NOTE: requests marked [MODIFIES DATA] change the seed data; re-run `npx prisma db seed` to restore it.
+# =====================================================================
+
+### 9. Public SOS board (no token) -> 200, OPEN only, CRITICAL first, no patientReference / note
+GET {{baseUrl}}/requests/sos
+
+### 10. Publish a request as Coordinator -> 201 (OPEN, unitsCollected 0, unitsStillNeeded = unitsRequired)
+# [MODIFIES DATA] a second run gives 409 (duplicate OPEN request) - change patientReference to run it again
+# @name createdRequest
+POST {{baseUrl}}/requests
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{
+  "patientReference": "HOMS-ER-900",
+  "bloodType": "O+",
+  "unitsRequired": 2,
+  "areaId": "area-homs",
+  "urgency": "HIGH",
+  "hospital": "Al-Watani Hospital Homs",
+  "note": "Road accident, two units needed."
+}
+
+###
+@newRequestId = {{createdRequest.response.body.id}}
+
+### 11. Duplicate OPEN request (same patientReference + bloodType, any letter case) -> 409
+POST {{baseUrl}}/requests
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "patientReference": "homs-icu-402", "bloodType": "A-", "unitsRequired": 3, "areaId": "area-homs", "urgency": "CRITICAL", "hospital": "Central Blood Bank Homs" }
+
+### 11b. Same patientReference but a different blood type -> 201 (allowed by R-13)
+# [MODIFIES DATA]
+POST {{baseUrl}}/requests
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "patientReference": "HOMS-ICU-402", "bloodType": "B+", "unitsRequired": 1, "areaId": "area-homs", "urgency": "NORMAL", "hospital": "Central Blood Bank Homs" }
+
+### 12a. Missing patientReference -> 400 "Patient reference is required."
+POST {{baseUrl}}/requests
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "bloodType": "A-", "unitsRequired": 3, "areaId": "area-homs", "urgency": "CRITICAL", "hospital": "Central Blood Bank Homs" }
+
+### 12b. Invalid blood type -> 400
+POST {{baseUrl}}/requests
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "patientReference": "X-1", "bloodType": "C+", "unitsRequired": 3, "areaId": "area-homs", "urgency": "CRITICAL", "hospital": "H" }
+
+### 12c. unitsRequired 11 -> 400 "Units required must be a whole number between 1 and 10."
+POST {{baseUrl}}/requests
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "patientReference": "X-2", "bloodType": "A-", "unitsRequired": 11, "areaId": "area-homs", "urgency": "CRITICAL", "hospital": "H" }
+
+### 12d. unitsRequired 2.5 -> 400 (same message)
+POST {{baseUrl}}/requests
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "patientReference": "X-3", "bloodType": "A-", "unitsRequired": 2.5, "areaId": "area-homs", "urgency": "CRITICAL", "hospital": "H" }
+
+### 12e. unitsRequired as a string "3" -> 400 (same message)
+POST {{baseUrl}}/requests
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "patientReference": "X-4", "bloodType": "A-", "unitsRequired": "3", "areaId": "area-homs", "urgency": "CRITICAL", "hospital": "H" }
+
+### 12f. Invalid urgency -> 400 "Urgency must be CRITICAL, HIGH, or NORMAL."
+POST {{baseUrl}}/requests
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "patientReference": "X-5", "bloodType": "A-", "unitsRequired": 3, "areaId": "area-homs", "urgency": "URGENT", "hospital": "H" }
+
+### 12g. Unknown area -> 400 "Selected area is not supported."
+POST {{baseUrl}}/requests
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "patientReference": "X-6", "bloodType": "A-", "unitsRequired": 3, "areaId": "area-nowhere", "urgency": "CRITICAL", "hospital": "H" }
+
+### 13. A Donor cannot publish requests -> 403 "You do not have permission to perform this action."
+POST {{baseUrl}}/requests
+Authorization: Bearer {{donorToken}}
+Content-Type: application/json
+
+{ "patientReference": "X-7", "bloodType": "A-", "unitsRequired": 3, "areaId": "area-homs", "urgency": "CRITICAL", "hospital": "H" }
+
+### 13b. No token -> 401
+POST {{baseUrl}}/requests
+Content-Type: application/json
+
+{ "patientReference": "X-8" }
+
+### 14a. List all requests as Coordinator -> 200, newest first
+GET {{baseUrl}}/requests
+Authorization: Bearer {{coordinatorToken}}
+
+### 14b. Filtered list -> 200 (OPEN + A- + Homs + CRITICAL)
+GET {{baseUrl}}/requests?status=OPEN&bloodType=A-&areaId=area-homs&urgency=CRITICAL
+Authorization: Bearer {{coordinatorToken}}
+
+### 14c. Invalid status filter -> 400 "Invalid status filter. Must be OPEN, FULFILLED, or CANCELLED."
+GET {{baseUrl}}/requests?status=DONE
+Authorization: Bearer {{coordinatorToken}}
+
+### 14d. Unknown query parameter -> 400 "Unknown field 'colour' is not allowed."
+GET {{baseUrl}}/requests?colour=red
+Authorization: Bearer {{coordinatorToken}}
+
+### 15a. Request details -> 200 (counters, pledges, donations)
+GET {{baseUrl}}/requests/req-103
+Authorization: Bearer {{coordinatorToken}}
+
+### 15b. Unknown request -> 404 "Blood request not found."
+GET {{baseUrl}}/requests/req-does-not-exist
+Authorization: Bearer {{coordinatorToken}}
+
+### 16. Eligible donors for req-101 (A-, Homs) -> 200: Sara, Zaid, Omar; excludedSummary { restPeriod 1, unavailable 1, inactive 1 }
+GET {{baseUrl}}/requests/req-101/eligible-donors
+Authorization: Bearer {{coordinatorToken}}
+
+### 16b. Eligible donors for a FULFILLED request -> 409 "Eligible donors can only be matched for OPEN requests."
+GET {{baseUrl}}/requests/req-104/eligible-donors
+Authorization: Bearer {{coordinatorToken}}
+
+### 17a. Update an OPEN request -> 200
+# [MODIFIES DATA]
+PATCH {{baseUrl}}/requests/req-101
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "unitsRequired": 2, "urgency": "HIGH", "note": "Updated unit count after cross-match." }
+
+### 17b. Update with units outside 1-10 -> 400
+PATCH {{baseUrl}}/requests/req-101
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "unitsRequired": 0 }
+
+### 17c. Update a FULFILLED request -> 409 "Only OPEN requests can be updated."
+PATCH {{baseUrl}}/requests/req-104
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "urgency": "HIGH" }
+
+### 17d. Lower unitsRequired to what is already collected -> 200 and status FULFILLED (R-11)
+# req-102 (AB+, Damascus) needs 3 and has 1 collected. [MODIFIES DATA]
+PATCH {{baseUrl}}/requests/req-102
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "unitsRequired": 1 }
+
+### 18a. Cancel without a reason -> 400 "Cancellation reason is required."
+PATCH {{baseUrl}}/requests/req-103/cancel
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "cancelReason": "   " }
+
+### 18b. Cancel req-103 -> 200, status CANCELLED, Hiba's pledge becomes RELEASED
+# [MODIFIES DATA]
+PATCH {{baseUrl}}/requests/req-103/cancel
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "cancelReason": "Patient transferred to Damascus University Hospital." }
+
+### 18c. Cancel it again -> 409 "Only OPEN requests can be cancelled."
+PATCH {{baseUrl}}/requests/req-103/cancel
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "cancelReason": "Second attempt." }
+
+# =====================================================================
+# Donations (Step 5). Run the Coordinator sign-in (6a) first.
+# Seed scenario: req-101 = A-, 3 units, Homs, nobody has donated yet.
+# Run 22, 22b, 23a, 23b in order. Re-run `npx prisma db seed` to start over.
+# =====================================================================
+
+### 22. Record Sara's donation (1st of 3 units) -> 201: unitsCollected 1, unitsStillNeeded 2, donation listed
+# [MODIFIES DATA]
+POST {{baseUrl}}/requests/req-101/donations
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "donorId": "dp-sara", "donationDate": "2026-11-01" }
+
+### 22b. Sara again right away -> 400 "This donor is in rest period until 2026-12-27." (logged as WARN, nothing saved)
+POST {{baseUrl}}/requests/req-101/donations
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "donorId": "dp-sara", "donationDate": "2026-11-01" }
+
+### 23a. Zaid (A-, donated 90 days ago) -> 201: unitsCollected 2
+# [MODIFIES DATA]
+POST {{baseUrl}}/requests/req-101/donations
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "donorId": "dp-zaid", "donationDate": "2026-11-02" }
+
+### 23b. Omar (O-, compatible with A-) = the 3rd and final unit -> 201: request becomes FULFILLED, unitsStillNeeded 0
+# [MODIFIES DATA]
+POST {{baseUrl}}/requests/req-101/donations
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "donorId": "dp-omar", "donationDate": "2026-11-03" }
+
+### 23c. The request is FULFILLED now -> 409 "Donations can only be recorded for OPEN requests."
+POST {{baseUrl}}/requests/req-101/donations
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "donorId": "dp-ahmad", "donationDate": "2026-11-03" }
+
+### 24a. Future date -> 400 "The donation date cannot be in the future." (use a request that is still OPEN: req-102)
+POST {{baseUrl}}/requests/req-102/donations
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "donorId": "dp-dana", "donationDate": "2030-01-01" }
+
+### 24b. Donor in rest period (Tarek donated 15 days ago) -> 400 "This donor is in rest period until YYYY-MM-DD."
+POST {{baseUrl}}/requests/req-102/donations
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "donorId": "dp-tarek", "donationDate": "2026-11-03" }
+
+### 24c. Donor marked unavailable (Reem) -> 400 "This donor is currently marked as unavailable."
+POST {{baseUrl}}/requests/req-102/donations
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "donorId": "dp-reem", "donationDate": "2026-11-03" }
+
+### 24d. Inactive donor (Karim) on a Homs request -> 400 "This donor account is deactivated and cannot donate."
+# req-101 is FULFILLED after 23b, so create a fresh Homs request with request 10 first, or re-seed and use req-101.
+POST {{baseUrl}}/requests/req-101/donations
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "donorId": "dp-karim", "donationDate": "2026-11-03" }
+
+### 24e. Incompatible blood type (Lina is A+, request needs A-) -> 400 (needs an OPEN A- request: re-seed and use req-101)
+POST {{baseUrl}}/requests/req-101/donations
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "donorId": "dp-lina", "donationDate": "2026-11-03" }
+
+### 24f. Donor in a different area (Hiba is A- in Aleppo, req-101 is in Homs) -> 400 "This donor is in Aleppo, but the request is in Homs."
+POST {{baseUrl}}/requests/req-101/donations
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "donorId": "dp-hiba", "donationDate": "2026-11-03" }
+
+### 24g. Missing donorId -> 400 "Donor ID is required."
+POST {{baseUrl}}/requests/req-102/donations
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "donationDate": "2026-11-03" }
+
+### 24h. Impossible date -> 400 "Invalid date. Use the format YYYY-MM-DD."
+POST {{baseUrl}}/requests/req-102/donations
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "donorId": "dp-dana", "donationDate": "2026-02-31" }
+
+### 25a. Unknown request -> 404 "Blood request not found."
+POST {{baseUrl}}/requests/req-does-not-exist/donations
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "donorId": "dp-dana", "donationDate": "2026-11-03" }
+
+### 25b. Unknown donor -> 404 "Donor not found."
+POST {{baseUrl}}/requests/req-102/donations
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "donorId": "dp-nobody", "donationDate": "2026-11-03" }
+
+### 25c. A Donor cannot record donations -> 403
+POST {{baseUrl}}/requests/req-102/donations
+Authorization: Bearer {{donorToken}}
+Content-Type: application/json
+
+{ "donorId": "dp-dana", "donationDate": "2026-11-03" }
+
+# =====================================================================
+# Donors & Pledges (Step 6).
+# START FROM A FRESH SEED (`npx prisma db seed`) and run these sections top to bottom.
+# Seed scenario: req-101 = A-, 3 units, Homs, OPEN (no pledges). Sara (A-, Homs) is eligible.
+#   Rami (donated 20 days ago) = rest period, Huda = unavailable, Lina = A+ (incompatible),
+#   Zaid (A-, Homs, donated 90 days ago) = eligible, Omar (O-, Homs, 120 days ago) = eligible.
+# =====================================================================
+
+### Login: Zaid
+# @name zaidLogin
+POST {{baseUrl}}/auth/sign-in
+Content-Type: application/json
+
+{ "identifier": "0933000002", "password": "DonorPassword123" }
+
+###
+@zaidToken = {{zaidLogin.response.body.accessToken}}
+
+### Login: Omar
+# @name omarLogin
+POST {{baseUrl}}/auth/sign-in
+Content-Type: application/json
+
+{ "identifier": "0944556677", "password": "DonorPassword123" }
+
+###
+@omarToken = {{omarLogin.response.body.accessToken}}
+
+### Login: Rami (rest period)
+# @name ramiLogin
+POST {{baseUrl}}/auth/sign-in
+Content-Type: application/json
+
+{ "identifier": "0933000004", "password": "DonorPassword123" }
+
+###
+@ramiToken = {{ramiLogin.response.body.accessToken}}
+
+### Login: Lina (A+)
+# @name linaLogin
+POST {{baseUrl}}/auth/sign-in
+Content-Type: application/json
+
+{ "identifier": "0933000005", "password": "DonorPassword123" }
+
+###
+@linaToken = {{linaLogin.response.body.accessToken}}
+
+### Login: Huda (unavailable)
+# @name hudaLogin
+POST {{baseUrl}}/auth/sign-in
+Content-Type: application/json
+
+{ "identifier": "0933000006", "password": "DonorPassword123" }
+
+###
+@hudaToken = {{hudaLogin.response.body.accessToken}}
+
+# ---------------------------------------------------------------------
+# GET /donors/me
+# ---------------------------------------------------------------------
+
+### 19a. Sara's profile -> 200: ELIGIBLE, lastDonationDate null, nextAllowedDonationDate null, activePledge null
+GET {{baseUrl}}/donors/me
+Authorization: Bearer {{donorToken}}
+
+### 19b. Rami's profile -> 200: eligibilityStatus REST_PERIOD, nextAllowedDonationDate = lastDonationDate + 56 days, one donation in history
+GET {{baseUrl}}/donors/me
+Authorization: Bearer {{ramiToken}}
+
+### 19c. A Coordinator cannot use the donor profile endpoint -> 403
+GET {{baseUrl}}/donors/me
+Authorization: Bearer {{coordinatorToken}}
+
+### 19d. No token -> 401
+GET {{baseUrl}}/donors/me
+
+# ---------------------------------------------------------------------
+# PATCH /donors/me
+# ---------------------------------------------------------------------
+
+### 20a. Mark myself unavailable -> 200: isAvailable false, eligibilityStatus UNAVAILABLE
+PATCH {{baseUrl}}/donors/me
+Authorization: Bearer {{donorToken}}
+Content-Type: application/json
+
+{ "isAvailable": false }
+
+### 20a-2. Mark myself available again -> 200: ELIGIBLE
+PATCH {{baseUrl}}/donors/me
+Authorization: Bearer {{donorToken}}
+Content-Type: application/json
+
+{ "isAvailable": true }
+
+### 20b. Invalid phone -> 400 "A valid phone number is required."
+PATCH {{baseUrl}}/donors/me
+Authorization: Bearer {{donorToken}}
+Content-Type: application/json
+
+{ "phone": "abc" }
+
+### 20c. isAvailable is not a boolean -> 400 "Availability must be a boolean value."
+PATCH {{baseUrl}}/donors/me
+Authorization: Bearer {{donorToken}}
+Content-Type: application/json
+
+{ "isAvailable": "false" }
+
+### 20d. Unknown area -> 400 "Selected area is not supported."
+PATCH {{baseUrl}}/donors/me
+Authorization: Bearer {{donorToken}}
+Content-Type: application/json
+
+{ "areaId": "area-nowhere" }
+
+### 20e. Phone already used by Omar -> 409 "An account with this phone number is already registered."
+PATCH {{baseUrl}}/donors/me
+Authorization: Bearer {{donorToken}}
+Content-Type: application/json
+
+{ "phone": "0944556677" }
+
+### 20f. Unknown field -> 400 "Unknown field 'bloodType' is not allowed." (a donor cannot change blood type)
+PATCH {{baseUrl}}/donors/me
+Authorization: Bearer {{donorToken}}
+Content-Type: application/json
+
+{ "bloodType": "O-" }
+
+# ---------------------------------------------------------------------
+# GET /donors/me/eligible-requests   and   GET /donors
+# ---------------------------------------------------------------------
+
+### 21a. Sara's eligible requests -> 200: [req-101] (the only OPEN A- request in Homs), canPledge true
+GET {{baseUrl}}/donors/me/eligible-requests
+Authorization: Bearer {{donorToken}}
+
+### 21b. Rami (rest period) -> 200 []
+GET {{baseUrl}}/donors/me/eligible-requests
+Authorization: Bearer {{ramiToken}}
+
+### 21c. Huda (unavailable) -> 200 []
+GET {{baseUrl}}/donors/me/eligible-requests
+Authorization: Bearer {{hudaToken}}
+
+### 21d. Coordinator lists all donors -> 200: 24 donors ordered by fullName, with eligibilityStatus
+GET {{baseUrl}}/donors
+Authorization: Bearer {{coordinatorToken}}
+
+### 21e. A Donor cannot list all donors -> 403
+GET {{baseUrl}}/donors
+Authorization: Bearer {{donorToken}}
+
+# ---------------------------------------------------------------------
+# POST /requests/:id/pledges   and   PATCH /pledges/:id/withdraw
+# ---------------------------------------------------------------------
+
+### 22-1. Sara pledges to req-101 -> 201: status PLEDGED, request.unitsStillNeeded 3
+# [MODIFIES DATA]
+# @name saraPledge
+POST {{baseUrl}}/requests/req-101/pledges
+Authorization: Bearer {{donorToken}}
+
+###
+@saraPledgeId = {{saraPledge.response.body.id}}
+
+### 22-2. Sara pledges again (to another request or the same one) -> 409 "You already have an active pledge. You can hold at most one active pledge at a time."
+POST {{baseUrl}}/requests/req-102/pledges
+Authorization: Bearer {{donorToken}}
+
+### 22-3. Coordinator view: req-101 now shows activePledgesCount 1 and Sara's pledge
+GET {{baseUrl}}/requests/req-101
+Authorization: Bearer {{coordinatorToken}}
+
+### 22-4. Rami (rest period) -> 400 "You cannot pledge while in rest period. Your next allowed donation date is YYYY-MM-DD."
+POST {{baseUrl}}/requests/req-101/pledges
+Authorization: Bearer {{ramiToken}}
+
+### 22-5. Huda (unavailable) -> 400 "You cannot pledge while your availability is set to unavailable."
+POST {{baseUrl}}/requests/req-101/pledges
+Authorization: Bearer {{hudaToken}}
+
+### 22-6. Lina (A+) pledges to an A- request -> 400 "Your blood type (A+) is not compatible with this request (A-)."
+POST {{baseUrl}}/requests/req-101/pledges
+Authorization: Bearer {{linaToken}}
+
+### 22-7. Zaid (Homs) pledges to req-102 (AB+, Damascus) -> 400 "You can only pledge to requests in your registered area (Homs)."
+POST {{baseUrl}}/requests/req-102/pledges
+Authorization: Bearer {{zaidToken}}
+
+### 22-8. Pledge to a FULFILLED request -> 409 "Pledges can only be made for OPEN requests."
+POST {{baseUrl}}/requests/req-104/pledges
+Authorization: Bearer {{zaidToken}}
+
+### 22-9. Unknown request -> 404 "Blood request not found."
+POST {{baseUrl}}/requests/req-does-not-exist/pledges
+Authorization: Bearer {{zaidToken}}
+
+### 22-10. A Coordinator cannot pledge -> 403
+POST {{baseUrl}}/requests/req-101/pledges
+Authorization: Bearer {{coordinatorToken}}
+
+### 23-1. R-17: the Coordinator publishes a request that needs exactly 1 unit (A-, Homs) -> 201
+# [MODIFIES DATA]
+# @name oneUnitRequest
+POST {{baseUrl}}/requests
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "patientReference": "HOMS-ONE-UNIT", "bloodType": "A-", "unitsRequired": 1, "areaId": "area-homs", "urgency": "NORMAL", "hospital": "Central Blood Bank Homs" }
+
+###
+@oneUnitRequestId = {{oneUnitRequest.response.body.id}}
+
+### 23-2. Zaid takes the only free unit -> 201
+# [MODIFIES DATA]
+POST {{baseUrl}}/requests/{{oneUnitRequestId}}/pledges
+Authorization: Bearer {{zaidToken}}
+
+### 23-3. Omar (O-, compatible) tries the same request -> 409 "This request already has enough active pledges for all remaining units needed."
+POST {{baseUrl}}/requests/{{oneUnitRequestId}}/pledges
+Authorization: Bearer {{omarToken}}
+
+### 24-1. Zaid tries to withdraw SARA's pledge -> 403 "You can only withdraw your own pledge."
+PATCH {{baseUrl}}/pledges/{{saraPledgeId}}/withdraw
+Authorization: Bearer {{zaidToken}}
+
+### 24-2. Sara withdraws her own pledge -> 200 { id, status: "WITHDRAWN" }
+# [MODIFIES DATA]
+PATCH {{baseUrl}}/pledges/{{saraPledgeId}}/withdraw
+Authorization: Bearer {{donorToken}}
+
+### 24-3. Withdraw the same pledge again -> 409 "Only active PLEDGED pledges can be withdrawn."
+PATCH {{baseUrl}}/pledges/{{saraPledgeId}}/withdraw
+Authorization: Bearer {{donorToken}}
+
+### 24-4. Unknown pledge -> 404 "Pledge not found."
+PATCH {{baseUrl}}/pledges/plg-does-not-exist/withdraw
+Authorization: Bearer {{donorToken}}
+
+### 24-5. After withdrawing, Sara can pledge again -> 201
+# [MODIFIES DATA]
+POST {{baseUrl}}/requests/req-101/pledges
+Authorization: Bearer {{donorToken}}
+
+### 24-6. Sara's dashboard now shows the active pledge with request details
+GET {{baseUrl}}/donors/me
+Authorization: Bearer {{donorToken}}
+
+### 24-7. Coordinator records Sara's donation: her pledge becomes COMPLETED (see Donations section)
+# [MODIFIES DATA]
+POST {{baseUrl}}/requests/req-101/donations
+Authorization: Bearer {{coordinatorToken}}
+Content-Type: application/json
+
+{ "donorId": "dp-sara", "donationDate": "2026-11-01" }
+
+# ---------------------------------------------------------------------
+# PATCH /donors/me/deactivate (last, because it locks the account)
+# ---------------------------------------------------------------------
+
+### 25-1. Lina deactivates her account -> 200 { "message": "Your account has been deactivated." }
+# [MODIFIES DATA]
+PATCH {{baseUrl}}/donors/me/deactivate
+Authorization: Bearer {{linaToken}}
+
+### 25-2. Lina signs in again -> 403 "This account has been deactivated."
+POST {{baseUrl}}/auth/sign-in
+Content-Type: application/json
+
+{ "identifier": "0933000005", "password": "DonorPassword123" }
+
+### 25-3. Her old token stops working immediately -> 401
+GET {{baseUrl}}/donors/me
+Authorization: Bearer {{linaToken}}
+
+### 25-4. Zaid deactivates while holding an active pledge -> his pledge becomes WITHDRAWN (check the request details afterwards)
+# [MODIFIES DATA]
+PATCH {{baseUrl}}/donors/me/deactivate
+Authorization: Bearer {{zaidToken}}
+
+### 25-5. The one-unit request has no active pledge any more (activePledgesCount 0, Zaid's pledge WITHDRAWN)
+GET {{baseUrl}}/requests/{{oneUnitRequestId}}
+Authorization: Bearer {{coordinatorToken}}
