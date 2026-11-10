@@ -1,0 +1,27 @@
+import type { ExcludedDonorsSummary as ExcludedCounts } from '../../types/request.types';
+
+interface ExcludedDonorsSummaryProps {
+  excludedSummary: ExcludedCounts;
+}
+
+export function ExcludedDonorsSummary({ excludedSummary }: ExcludedDonorsSummaryProps) {
+  return (
+    <section className="eligible-donors-excluded" aria-label="Excluded donors summary">
+      <div className="eligible-donors-excluded__card eligible-donors-excluded__card--rest">
+        <h2 className="eligible-donors-excluded__title">In Rest Period</h2>
+        <p className="eligible-donors-excluded__count">{excludedSummary.restPeriod} donors</p>
+        <p className="eligible-donors-excluded__description">Compatible donors in this area inside their 56-day cooldown.</p>
+      </div>
+      <div className="eligible-donors-excluded__card">
+        <h2 className="eligible-donors-excluded__title">Unavailable</h2>
+        <p className="eligible-donors-excluded__count">{excludedSummary.unavailable} donors</p>
+        <p className="eligible-donors-excluded__description">Active, non-resting compatible donors in this area currently marked unavailable.</p>
+      </div>
+      <div className="eligible-donors-excluded__card eligible-donors-excluded__card--inactive">
+        <h2 className="eligible-donors-excluded__title">Inactive accounts</h2>
+        <p className="eligible-donors-excluded__count">{excludedSummary.inactive} donors</p>
+        <p className="eligible-donors-excluded__description">Deactivated compatible donor accounts in this area.</p>
+      </div>
+    </section>
+  );
+}
