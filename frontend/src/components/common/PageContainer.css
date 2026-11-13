@@ -1,0 +1,42 @@
+.ui-page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  animation: bdn-fade-in 0.25s ease-in-out both;
+}
+
+.ui-page-container__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ui-page-container__heading {
+  min-width: 0;
+}
+
+.ui-page-container__title {
+  font-size: 1.875rem;
+  color: var(--color-text);
+}
+
+.ui-page-container__subtitle {
+  margin-top: 0.25rem;
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+}
+
+.ui-page-container__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ui-page-container__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
