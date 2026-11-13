@@ -1,14 +1,17 @@
+import { AuthProvider } from './context/AuthContext';
+import { DonorProvider } from './context/DonorContext';
+import { RequestsProvider } from './context/RequestsContext';
+import { AppRouter } from './routes/AppRouter';
 
-
-
-export function App() {
+export default function App() {
+  // AuthProvider is the outermost: the other two read the signed-in user from it.
   return (
-  
-      <div className="app-container">
-       BLOOD-DONATION-NETWORK
-      </div>
-       
+    <AuthProvider>
+      <DonorProvider>
+        <RequestsProvider>
+          <AppRouter />
+        </RequestsProvider>
+      </DonorProvider>
+    </AuthProvider>
   );
 }
-
-export default App;
