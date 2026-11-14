@@ -1,11 +1,13 @@
 import type { Area, BloodType } from './auth.types';
 import type { Urgency, RequestStatus } from './request.types';
 
+export type { Area } from './auth.types';
+
 export type EligibilityStatus = 'ELIGIBLE' | 'REST_PERIOD' | 'UNAVAILABLE' | 'INACTIVE';
 
 export type PledgeStatus = 'PLEDGED' | 'COMPLETED' | 'WITHDRAWN' | 'RELEASED';
 
-export interface DonorActivePledge {
+export interface ActivePledge {
   id: string;
   status: PledgeStatus;
   createdAt: string;
@@ -22,7 +24,7 @@ export interface DonorActivePledge {
   };
 }
 
-export interface DonorDonationHistoryItem {
+export interface DonationHistoryItem {
   id: string;
   donationDate: string;
   units: number;
@@ -47,8 +49,8 @@ export interface DonorDashboardProfile {
   lastDonationDate: string | null;
   nextAllowedDonationDate: string | null;
   eligibilityStatus: EligibilityStatus;
-  activePledge: DonorActivePledge | null;
-  donationHistory: DonorDonationHistoryItem[];
+  activePledge: ActivePledge | null;
+  donationHistory: DonationHistoryItem[];
 }
 
 export interface EligibleOpenRequest {
@@ -65,7 +67,7 @@ export interface EligibleOpenRequest {
   createdAt: string;
 }
 
-export interface UpdateDonorProfilePayload {
+export interface UpdateDonorProfileDto {
   areaId?: string;
   phone?: string;
   isAvailable?: boolean;

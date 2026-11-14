@@ -1,10 +1,10 @@
 # Molham frontend verification
 
-Date: 5 November 2026, Asia/Damascus. Branch: `molham`.
+Branch: `molham`. Initial checks ran on 5 November 2026. The results below reflect the 14 November 2026 merge with `main`.
 
 ## Result
 
-Molham's assigned frontend implementation is complete. Local checks pass. Real API/database integration is pending the backend team's implementation.
+Molham's assigned frontend implementation passes its automated checks. A live smoke check verified the public API against an isolated PostgreSQL database with the project's sample data.
 
 | Check | Observed result |
 | --- | --- |
@@ -13,7 +13,9 @@ Molham's assigned frontend implementation is complete. Local checks pass. Real A
 | `npm run lint` | PASS: zero errors or warnings |
 | `npm run build` | PASS: TypeScript checks and Vite production build |
 | `git diff --check` | PASS |
-| `npm run test:api` | INCOMPLETE: `fetch failed` at `http://localhost:3000/api` |
+| `npm run test:api` | PASS: area list, three public SOS requests with correct fields and ordering, and unauthenticated `/auth/me` rejection |
+| Backend `npm run build` | PASS after generating the Prisma client |
+| Backend `npm test -- --runInBand` | 72 passed, 10 failed in the existing request and donor DTO validation suite |
 
 Environment: Windows, Node.js 24.15.0, TypeScript 6.0.3, locally installed Chrome, and the desktop runtime's existing Playwright package. The existing starter TypeScript 7/linter conflict was corrected in its own commit. No new testing library was added to the project.
 
@@ -39,12 +41,8 @@ Environment: Windows, Node.js 24.15.0, TypeScript 6.0.3, locally installed Chrom
 - SOS loading, empty, failed and recovered responses are tested separately. Visitor, donor and coordinator card actions use the appropriate destinations.
 - The 404 return link works with the keyboard at phone width. The public pages fit 320px, 768px and 1280px widths without horizontal overflow or uncaught browser errors. The skip-to-content link is keyboard reachable.
 - Desktop and phone screenshots were visually reviewed for layout and readable forms/cards.
-- Source review found no direct fetch/service calls in pages/components, no hardcoded colors in the added component/page CSS, and token storage access only in the shared HTTP helper.
+- The browser suite confirms that the donor dashboard and profile open after sign-in and that donor requests carry the shared session token.
 
 ## Remaining live checks
 
-The backend source currently registers only the starter `AppController` and `AppService`. The required auth, areas, SOS endpoints and Prisma seed/database are not present. The live smoke check was attempted and did not connect.
-
-Once the backend is available, run `npm run test:api`, then repeat registration, sign-in by both roles, refresh and sign-out against seeded local test accounts. Verify the real SOS payload's privacy and ordering, and verify that the board reflects real request creation/fulfillment/cancellation after refreshing or returning to the board.
-
-Database persistence, backend DTO validation, backend role enforcement and the coordinator donation transaction have not been verified here. They belong to the backend/integration tasks. The local mocked browser checks must not be described as a passing real API or database test.
+The live check covers read-only endpoints. Signed-in browser flows use mocked responses. Coordinator request and donation workflows are outside this verification.

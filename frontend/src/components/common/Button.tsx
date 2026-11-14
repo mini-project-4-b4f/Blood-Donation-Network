@@ -7,9 +7,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   isLoading?: boolean;
 }
 
-export default function Button({ variant = 'primary', size = 'md', isLoading = false, disabled, type = 'button', className = '', children, ...props }: ButtonProps) {
+export function buttonClassName({ variant = 'primary', size = 'md', className = '' }: Pick<ButtonProps, 'variant' | 'size' | 'className'> = {}) {
+  return `ui-button ui-button--${variant} ui-button--${size} ${className}`.trim();
+}
+
+export default function Button({ variant, size, isLoading = false, disabled, type = 'button', className, children, ...props }: ButtonProps) {
   return (
-    <button {...props} type={type} disabled={disabled || isLoading} aria-busy={isLoading || undefined} className={`ui-button ui-button--${variant} ui-button--${size} ${className}`.trim()}>
+    <button {...props} type={type} disabled={disabled || isLoading} aria-busy={isLoading || undefined} className={buttonClassName({ variant, size, className })}>
       {isLoading ? 'Working…' : children}
     </button>
   );

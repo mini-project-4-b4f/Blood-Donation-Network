@@ -1,6 +1,6 @@
 # Molham frontend handoff
 
-Branch: `molham`. Work is committed locally. No push or merge was performed.
+Branch: `molham`. The branch includes the latest `main` used for the pull request.
 
 ## Delivered
 
@@ -19,12 +19,12 @@ The code follows the reference folder's straightforward function/props/controlle
 
 | Owner | Remaining dependency |
 | --- | --- |
-| Eyad | Real auth/areas endpoints, API prefix/CORS, Prisma/database/seed, review of the approved shared frontend foundation, and team integration |
-| Adham | Real `GET /api/requests/sos` with the public allowlist and required urgency/time ordering |
+| Eyad | Review of the shared frontend foundation and team integration |
+| Adham | Review the request validation test failures inherited from `main` |
 | Rami | Coordinator API functions, coordinator pages and the remaining RequestsContext actions |
-| Taymaa | DonorContext, donor dashboard/profile and donor/pledge actions |
+| Taymaa | Review the connection between the donor pages and the shared session |
 
-RequestsContext preserves the full documented value shape, but only its public SOS loading is connected. Coordinator actions explicitly return an unavailable error or `false`/`null`; they do not fake success. These are clearly marked foundation placeholders for Rami. Donor/coordinator routes remain guarded workspace placeholders until their owners supply those screens. No backend feature was implemented as part of Molham's scope.
+The donor routes display the team's dashboard and profile and use the shared session for their API calls. RequestsContext connects public SOS loading to the real endpoint. Coordinator pages and actions remain placeholders for Rami's work.
 
 To run the UI, use `npm run dev` from `frontend/`. The default API URL is `http://localhost:3000/api`; `.env.example` documents `VITE_API_URL`. See the test README for commands and runtime requirements.
 
@@ -57,4 +57,4 @@ The shared components give these pages consistent loading, empty and error state
 
 The session survives a refresh through the stored token and the current-user endpoint. Signing out clears it, and an old request cannot silently restore that session afterward.
 
-For this frontend demonstration, controlled API responses let me show success and failure cases reliably. The final demonstration with real accounts and persisted data will follow when the backend endpoints are connected.
+Controlled API responses let me demonstrate success and failure cases reliably. The merged backend can also serve the public SOS board and area list using the project's sample database.

@@ -19,7 +19,7 @@ export default defineConfig([
       globals: globals.browser,
     },
     rules: {
-      'react-refresh/only-export-components': ['error', { allowExportNames: ['useAuth', 'useRequests'] }],
+      'react-refresh/only-export-components': ['error', { allowExportNames: ['buttonClassName', 'useAuth', 'useDonor', 'useRequests'] }],
     },
   },
   {
