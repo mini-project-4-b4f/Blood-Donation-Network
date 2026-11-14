@@ -1,0 +1,146 @@
+
+.donor-dashboard {
+  direction: rtl; text-align: right; width: min(100% - 48px, 1320px); min-height: 100vh;
+  margin: 0 auto; padding: 34px 0 48px; color: #111a2f; background: #f6f8fb;
+  font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+}
+
+.donor-dashboard__header-section { margin-bottom: 28px; }
+.donor-dashboard__welcome { margin: 0 0 8px; color: #111a2f; font-size: clamp(26px, 3vw, 36px); line-height: 1.35; font-weight: 800; }
+.donor-dashboard__subtitle { color: #61718b; font-size: 15px; }
+.donor-dashboard__subtitle strong { color: #111a2f; }
+.donor-dashboard-banner { display:flex; align-items:center; gap:18px; margin-bottom:26px; padding:24px 28px; border:1px solid #dce4ef; border-radius:22px; background:#fff; box-shadow:0 2px 4px rgba(17,26,47,.04); }
+.donor-dashboard-banner--rest { border-color:#ffdf72; background:#fffbed; }
+.donor-dashboard-banner--eligible { border-color:#b9ead8; background:#f0fbf6; }
+.donor-dashboard-banner--inactive,.donor-dashboard-banner--unavailable { border-color:#ffcaca; background:#fff4f4; }
+.donor-dashboard-banner__icon { display:grid; place-items:center; flex:0 0 54px; width:54px; height:54px; border-radius:16px; background:#f59e0b; color:#fff; font-size:25px; }
+.donor-dashboard-banner--eligible .donor-dashboard-banner__icon { background:#00a879; }
+.donor-dashboard-banner--inactive .donor-dashboard-banner__icon,.donor-dashboard-banner--unavailable .donor-dashboard-banner__icon { background:#e52529; }
+.donor-dashboard-banner__content { min-width:0; flex:1; }
+.donor-dashboard-banner__title { margin:0 0 6px; color:#9a5b00; font-size:20px; line-height:1.5; font-weight:800; }
+.donor-dashboard-banner--eligible .donor-dashboard-banner__title { color:#00875f; }
+.donor-dashboard-banner--inactive .donor-dashboard-banner__title,.donor-dashboard-banner--unavailable .donor-dashboard-banner__title { color:#ae2525; }
+.donor-dashboard-banner__desc { color:#687893; font-size:14px; line-height:1.7; }
+.donor-dashboard-banner__desc strong { color:#111a2f; }
+.donor-dashboard-banner__sub { display:block; margin-top:4px; color:#687893; }
+.donor-dashboard-section,.donor-dashboard-card { margin:0 0 26px; padding:28px 32px; border:1px solid #dce4ef; border-radius:24px; background:#fff; box-shadow:0 2px 4px rgba(17,26,47,.04); }
+.donor-dashboard-section__header-row { display:flex; justify-content:space-between; align-items:center; gap:14px; margin-bottom:20px; }
+.donor-dashboard-section__title,.donor-dashboard-card__title { margin:0; color:#111a2f; font-size:22px; line-height:1.45; font-weight:800; }
+.donor-dashboard-section__subtitle-tag { color:#75849c; font-size:13px; }
+.donor-dashboard-requests-grid { display:flex; flex-direction:column; gap:16px; }
+.donor-dashboard-request-card { display:flex; justify-content:space-between; align-items:center; gap:18px; padding:20px 22px; background:#fff; border:1px solid #dce4ef; border-radius:18px; transition:border-color .18s ease,box-shadow .18s ease; }
+.donor-dashboard-request-card:hover { border-color:#f0a4a6; box-shadow:0 4px 12px rgba(17,26,47,.06); }
+.donor-dashboard-request-card__main-info { display:flex; align-items:center; gap:16px; min-width:0; }
+.donor-dashboard-request-card__details { min-width:0; }
+.donor-dashboard-blood-badge-lg { display:flex; align-items:center; justify-content:center; flex:0 0 58px; width:58px; height:58px; border:2px solid #e52529; border-radius:14px; background:#fff5f5; color:#c91f24; font-size:20px; font-weight:800; }
+.donor-dashboard-request-card__top-line { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:5px; }
+.donor-dashboard-request-card__hospital { margin:0; color:#111a2f; font-size:18px; font-weight:750; }
+.donor-dashboard-badge { display:inline-flex; align-items:center; justify-content:center; padding:6px 14px; border-radius:999px; background:#f1f4f8; color:#566782; font-size:12px; font-weight:800; }
+.donor-dashboard-badge--critical { border:1px solid #ffcaca; background:#fff0f0; color:#e52529; }
+.donor-dashboard-badge--high { background:#fff6e7; color:#a86500; }
+.donor-dashboard-badge--normal { background:#eef7ff; color:#2865a8; }
+.donor-dashboard-request-card__desc { margin:0 0 5px; color:#71809a; font-size:14px; line-height:1.6; }
+.donor-dashboard-request-card__units { margin:0; color:#e52529; font-size:14px; font-weight:700; }
+.donor-dashboard-request-card__action { flex:0 0 auto; }
+.donor-dashboard-btn { padding:11px 18px; border:0; border-radius:12px; font-size:14px; font-weight:750; cursor:pointer; transition:filter .18s ease,transform .18s ease; }
+.donor-dashboard-btn:hover:not(:disabled) { filter:brightness(.96); transform:translateY(-1px); }
+.donor-dashboard-btn--primary { background:#e3e9f1; color:#64748b; }
+.donor-dashboard-btn--danger { background:#e52529; color:#fff; }
+.donor-dashboard-btn--secondary { background:#e9edf3; color:#28364d; }
+.donor-dashboard-btn:disabled { opacity:.62; cursor:not-allowed; }
+.donor-dashboard-card__header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.donor-dashboard-card__body { display:grid; gap:10px; margin:18px 0; }
+.donor-dashboard-info-row { color:#71809a; }
+.donor-dashboard-info-row strong { color:#111a2f; }
+.donor-dashboard-card__footer { margin-top:16px; }
+.donor-dashboard-table-container { overflow-x:auto; }
+.donor-dashboard-table { width:100%; border-collapse:collapse; text-align:right; }
+.donor-dashboard-table th { padding:14px 16px; border-bottom:1px solid #dce4ef; background:#f6f8fb; color:#52627c; font-size:14px; font-weight:750; text-align:right; white-space:nowrap; }
+.donor-dashboard-table td { padding:16px; border-bottom:1px solid #edf0f5; color:#53647e; font-size:14px; text-align:right; }
+.donor-dashboard-table tbody tr:last-child td { border-bottom:0; }
+.donor-dashboard-blood-badge-sm { display:inline-block; padding:3px 10px; border-radius:999px; background:#fff0f0; color:#e52529; font-size:13px; font-weight:800; }
+.donor-dashboard-loading,.donor-dashboard-error { direction:rtl; max-width:900px; margin:36px auto; padding:20px; text-align:center; color:#53647e; }
+.donor-dashboard-alert { margin:0 0 16px; padding:13px 16px; border:1px solid #ffcaca; border-radius:12px; background:#fff3f3; color:#b42327; }
+.donor-dashboard-card--empty { color:#71809a; }
+
+
+.donor-dashboard {
+  direction: ltr;
+  text-align: left;
+  max-width: 1320px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 34px 24px 48px;
+  color: #111a2f;
+  background: #f6f8fb;
+  font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+}
+
+
+.donor-dashboard__header-flex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.donor-dashboard__eyebrow {
+  display: block;
+  margin-bottom: 4px;
+  color: #e52529;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.donor-dashboard__inline-badges {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.donor-dashboard__meta-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 750;
+}
+
+
+.donor-dashboard__meta-badge--blood {
+  background: #ffebe5;
+  color: #d9381e;
+  border: 1px solid #ffd2cb;
+}
+
+
+.donor-dashboard__meta-badge--area {
+  background: #e6f2ff;
+  color: #0066cc;
+  border: 1px solid #cce5ff;
+}
+
+
+@media (max-width: 768px) {
+  .donor-dashboard__header-flex {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+@media (max-width:700px) {
+  .donor-dashboard { width:calc(100% - 28px); padding:22px 0 32px; }
+  .donor-dashboard__welcome { font-size:27px; }
+  .donor-dashboard-banner { align-items:flex-start; padding:18px; border-radius:18px; }
+  .donor-dashboard-banner__icon { flex-basis:44px; width:44px; height:44px; }
+  .donor-dashboard-section,.donor-dashboard-card { padding:19px 17px; border-radius:18px; }
+  .donor-dashboard-section__header-row { align-items:flex-start; flex-direction:column; }
+  .donor-dashboard-section__title,.donor-dashboard-card__title { font-size:19px; }
+  .donor-dashboard-request-card { align-items:stretch; flex-direction:column; padding:17px; }
+  .donor-dashboard-request-card__main-info { align-items:flex-start; }
+  .donor-dashboard-request-card__action .donor-dashboard-btn { width:100%; }
+  .donor-dashboard-table { min-width:640px; }
+}
