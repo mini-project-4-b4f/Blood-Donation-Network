@@ -1,0 +1,6 @@
+.ui-status-badge { display: inline-flex; padding: 0.25rem 0.65rem; border-radius: 2rem; font-size: 0.72rem; font-weight: 750; color: var(--color-text); }
+.ui-status-badge--active, .ui-status-badge--error { background: var(--color-primary-light); }
+.ui-status-badge--success { background: color-mix(in srgb, var(--color-success) 15%, var(--color-surface)); }
+.ui-status-badge--info { background: color-mix(in srgb, var(--color-info) 12%, var(--color-surface)); }
+.ui-status-badge--neutral { background: var(--color-border); }
+.ui-status-badge--warning { background: color-mix(in srgb, var(--color-warning) 18%, var(--color-surface)); }

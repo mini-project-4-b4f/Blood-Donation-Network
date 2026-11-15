@@ -1,66 +1,54 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { useDonor } from '../../context/DonorContext';
-import type { Area } from '../../types/donor.types';
-import './pages/DonorProfile/DonorProfilePage.css';
-export const DonorProfilePage: React.FC = () => {
-  const { profile, updateProfile, deactivateAccount, isActionLoading, actionError } = useDonor();
+import './DonorProfilePage.css';
 
-  const [phone, setPhone] = useState<string>('');
-  const [areaId, setAreaId] = useState<string>('');
-  const [isAvailable, setIsAvailable] = useState<boolean>(true);
-  const [areas, setAreas] = useState<Area[]>([]);
+export const DonorProfilePage: React.FC = () => {
+  const { areas, loadAreas, signOut } = useAuth();
+  const { profile, updateProfile, deactivateAccount, isLoading, isActionLoading, error, actionError } = useDonor();
+
+  const [phone, setPhone] = useState<string | null>(null);
+  const [areaId, setAreaId] = useState<string | null>(null);
+  const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [showDeactivateConfirm, setShowDeactivateConfirm] = useState<boolean>(false);
 
   useEffect(() => {
-    if (profile) {
-      setPhone(profile.phone || '');
-      setAreaId(profile.area?.id || '');
-      setIsAvailable(profile.isAvailable ?? true);
-    }
-  }, [profile]);
-
-  useEffect(() => {
-    const fetchAreas = async () => {
-      try {
-        const response = await fetch('/api/areas');
-        if (response.ok) {
-          const data = await response.json();
-          setAreas(data);
-        }
-      } catch (err) {
-        console.error('Failed to fetch areas', err);
-      }
-    };
-    fetchAreas();
-  }, []);
+    void loadAreas();
+  }, [loadAreas]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!profile) return;
     setSuccessMsg(null);
     try {
-      await updateProfile({ phone, areaId, isAvailable });
+      await updateProfile({
+        phone: phone ?? profile.phone,
+        areaId: areaId ?? profile.area.id,
+        isAvailable: isAvailable ?? profile.isAvailable,
+      });
+      setPhone(null);
+      setAreaId(null);
+      setIsAvailable(null);
       setSuccessMsg('Profile updated successfully!');
-    } catch (err) {
-      console.error('Failed to update profile', err);
+    } catch {
+      // The donor context supplies the error shown below the heading.
     }
   };
 
   const handleDeactivate = async () => {
     try {
       await deactivateAccount();
-      alert('Your account has been deactivated.');
-    } catch (err) {
-
+      signOut();
+    } catch {
+      // Keep the confirmation open so the donor can retry.
     }
   };
 
   if (!profile) {
-    return (
-      <div className="donor-profile-loading">
-        <p>Loading profile data...</p>
-      </div>
-    );
+    return isLoading
+      ? <div className="donor-profile-loading" role="status">Loading profile data...</div>
+      : <div className="donor-profile-alert donor-profile-alert--error" role="alert">{error ?? 'Failed to load profile data.'}</div>;
   }
 
   return (
@@ -106,7 +94,7 @@ export const DonorProfilePage: React.FC = () => {
             id="phone"
             type="text"
             className="donor-profile-form__input"
-            value={phone}
+            value={phone ?? profile.phone}
             onChange={(e) => setPhone(e.target.value)}
             required
           />
@@ -117,11 +105,14 @@ export const DonorProfilePage: React.FC = () => {
           <select
             id="area"
             className="donor-profile-form__select"
-            value={areaId}
+            value={areaId ?? profile.area.id}
             onChange={(e) => setAreaId(e.target.value)}
             required
           >
             <option value="">Select area...</option>
+            {!areas.some((area) => area.id === profile.area.id) && (
+              <option value={profile.area.id}>{profile.area.name}</option>
+            )}
             {areas.map((area) => (
               <option key={area.id} value={area.id}>
                 {area.name}
@@ -134,7 +125,7 @@ export const DonorProfilePage: React.FC = () => {
           <label className="donor-profile-form__checkbox-label">
             <input
               type="checkbox"
-              checked={isAvailable}
+              checked={isAvailable ?? profile.isAvailable}
               onChange={(e) => setIsAvailable(e.target.checked)}
             />
             <span>I am available and ready to donate blood when needed</span>

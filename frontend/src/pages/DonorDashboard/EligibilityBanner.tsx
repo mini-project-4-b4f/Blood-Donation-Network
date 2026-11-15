@@ -6,7 +6,7 @@ interface EligibilityBannerProps {
 }
 
 export const EligibilityBanner: React.FC<EligibilityBannerProps> = ({ profile }) => {
-  const { eligibilityStatus, nextAllowedDonationDate, isAvailable, isActive } = profile;
+  const { eligibilityStatus, nextAllowedDonationDate, isActive } = profile;
 
   if (!isActive) {
     return (
@@ -15,7 +15,7 @@ export const EligibilityBanner: React.FC<EligibilityBannerProps> = ({ profile })
         <div className="donor-dashboard-banner__content">
           <h3 className="donor-dashboard-banner__title">Account Deactivated</h3>
           <p className="donor-dashboard-banner__desc">
-            Your account is currently deactivated. You can reactivate it from your profile page.
+            Your account is currently deactivated.
           </p>
         </div>
       </div>
@@ -29,12 +29,15 @@ export const EligibilityBanner: React.FC<EligibilityBannerProps> = ({ profile })
         <div className="donor-dashboard-banner__content">
           <h3 className="donor-dashboard-banner__title">Rest & Recovery Period (REST PERIOD)</h3>
           <p className="donor-dashboard-banner__desc">
-            You are in a rest period until <strong>{nextAllowedDonationDate || '01-08-2026'}</strong>.
-            <span className="donor-dashboard-banner__sub"> According to safe donation rules (56-day period), you can donate again after this date.</span>
+            {nextAllowedDonationDate ? <>You are in a rest period until <strong>{nextAllowedDonationDate}</strong>.</> : 'You are in a rest period.'}
           </p>
         </div>
       </div>
     );
+  }
+
+  if (eligibilityStatus === 'UNAVAILABLE') {
+    return <p role="status">Your profile is currently marked as unavailable to donate.</p>;
   }
 
   return (
@@ -42,7 +45,7 @@ export const EligibilityBanner: React.FC<EligibilityBannerProps> = ({ profile })
       <div className="donor-dashboard-banner__icon">✅</div>
       <div className="donor-dashboard-banner__content">
         <h3 className="donor-dashboard-banner__title">You Are Eligible to Donate!</h3>
-        <p className="donor-dashboard-banner__desc">Your health status is great and you are ready to save lives.</p>
+        <p className="donor-dashboard-banner__desc">Your profile meets the network’s eligibility rules.</p>
       </div>
     </div>
   );

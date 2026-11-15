@@ -4,7 +4,7 @@ import { EligibilityBanner } from './EligibilityBanner';
 import { ActivePledgeCard } from './ActivePledgeCard';
 import { EligibleRequestsList } from './EligibleRequestsList';
 import { DonationHistoryTable } from './DonationHistoryTable';
-import './pages/DonorDashboard/DonorDashboardPage.css';
+import './DonorDashboardPage.css';
 export const DonorDashboardPage = () => {
   const {
     profile,

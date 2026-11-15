@@ -1,0 +1,5 @@
+.not-found-page { max-width: 42rem; margin: 2rem auto; padding: 3rem 1.5rem; text-align: center; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 1.25rem; box-shadow: var(--shadow); }
+.not-found-page__code { display: block; color: var(--color-primary); font-size: clamp(4rem, 12vw, 7rem); line-height: 1.2; font-weight: 800; letter-spacing: -0.06em; margin-bottom: 1rem; }
+.not-found-page h1 { font-size: clamp(1.6rem, 4vw, 2rem); line-height: 1.3; }
+.not-found-page p { max-width: 30rem; margin: 0 auto 2rem; color: var(--color-text-muted); }
+.not-found-page__back { display: inline-flex; gap: 1rem; padding: 0.75rem 1.1rem; border-radius: 0.5rem; text-decoration: none; color: var(--color-surface); background: var(--color-primary); font-weight: 650; }

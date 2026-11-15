@@ -1,40 +1,40 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Outlet, Route, Routes } from 'react-router-dom';
 import { Layout } from '../components/layout/Layout';
-import { ProtectedRoute } from '../components/layout/ProtectedRoute.tsx';
+import ProtectedRoute from '../components/layout/ProtectedRoute';
+import { DonorProvider } from '../context/DonorContext';
 import { DonorDashboardPage } from '../pages/DonorDashboard/DonorDashboardPage';
 import { DonorProfilePage } from '../pages/DonorProfile/DonorProfilePage';
-import { EligibleDonorsPage } from '../pages/EligibleDonors/EligibleDonorsPage';
-import { NotFoundPage } from '../pages/NotFound/NotFoundPage';
-import { RequestDetailsPage } from '../pages/RequestDetails/RequestDetailsPage';
-import { RequestsPage } from '../pages/Requests/RequestsPage';
-import { SignInPage } from '../pages/SignIn/SignInPage';
-import { SignUpPage } from '../pages/SignUp/SignUpPage';
-import { SosBoardPage } from '../pages/SosBoard/SosBoardPage';
+import SignInPage from '../pages/SignIn/SignInPage';
+import SignUpPage from '../pages/SignUp/SignUpPage';
+import SosBoardPage from '../pages/SosBoard/SosBoardPage';
+import NotFoundPage from '../pages/NotFound/NotFoundPage';
+import '../components/layout/ProtectedRoute.css';
 
-export function AppRouter() {
+function Placeholder({ title }: { title: string }) {
+  return <section className="layout-protected"><h1>{title}</h1><p>This workspace is coming soon.</p></section>;
+}
+
+export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
         <Route element={<Layout />}>
-          {/* Public */}
           <Route path="/" element={<SosBoardPage />} />
           <Route path="/sign-in" element={<SignInPage />} />
           <Route path="/sign-up" element={<SignUpPage />} />
 
-          {/* Donor only */}
           <Route element={<ProtectedRoute role="DONOR" />}>
-            <Route path="/donor/dashboard" element={<DonorDashboardPage />} />
-            <Route path="/donor/profile" element={<DonorProfilePage />} />
+            {/* Start donor API calls only after the donor session is confirmed. */}
+            <Route element={<DonorProvider><Outlet /></DonorProvider>}>
+              <Route path="/donor/dashboard" element={<DonorDashboardPage />} />
+              <Route path="/donor/profile" element={<DonorProfilePage />} />
+            </Route>
           </Route>
 
-          {/* Coordinator only */}
           <Route element={<ProtectedRoute role="COORDINATOR" />}>
-            <Route path="/coordinator/requests" element={<RequestsPage />} />
-            <Route path="/coordinator/requests/:requestId" element={<RequestDetailsPage />} />
-            <Route
-              path="/coordinator/requests/:requestId/eligible-donors"
-              element={<EligibleDonorsPage />}
-            />
+            <Route path="/coordinator/requests" element={<Placeholder title="Manage Requests" />} />
+            <Route path="/coordinator/requests/:requestId" element={<Placeholder title="Request Details" />} />
+            <Route path="/coordinator/requests/:requestId/eligible-donors" element={<Placeholder title="Eligible Donors" />} />
           </Route>
 
           <Route path="*" element={<NotFoundPage />} />

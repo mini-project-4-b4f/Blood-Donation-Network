@@ -247,7 +247,7 @@ describe('MatchingService', () => {
     it('keeps `reason` equal to `forCoordinator`', () => {
       const donor = makeDonor({ fullName: 'Lina', bloodType: 'A_POS' });
       const result = service.checkDonorEligibilityForRequest(donor, request, NOW);
-      if (result.eligible) throw new Error('expected an ineligible result');
+      if (result.eligible === true) throw new Error('expected an ineligible result');
       expect(result.reason).toBe(result.forCoordinator);
     });
 

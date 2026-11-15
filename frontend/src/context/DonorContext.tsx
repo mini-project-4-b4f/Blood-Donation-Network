@@ -37,15 +37,17 @@ export const DonorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       ]);
       setProfile(profileData);
       setEligibleRequests(requestsData);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred while loading donor data.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while loading donor data.');
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchDonorData();
+    // Let Strict Mode cancel its first setup before starting any request.
+    const timer = window.setTimeout(() => void fetchDonorData(), 0);
+    return () => window.clearTimeout(timer);
   }, [fetchDonorData]);
 
   const updateProfile = async (dto: UpdateDonorProfileDto) => {
@@ -57,8 +59,8 @@ export const DonorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     
       const updatedRequests = await donorsApi.getEligibleRequests();
       setEligibleRequests(updatedRequests);
-    } catch (err: any) {
-      setActionError(err.message || 'Failed to update profile.');
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to update profile.');
       throw err;
     } finally {
       setIsActionLoading(false);
@@ -71,8 +73,8 @@ export const DonorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       await pledgesApi.createPledge(requestId);
       await fetchDonorData();
-    } catch (err: any) {
-      setActionError(err.message || 'Failed to submit pledge.');
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to submit pledge.');
       throw err;
     } finally {
       setIsActionLoading(false);
@@ -85,8 +87,8 @@ export const DonorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       await pledgesApi.withdrawPledge(pledgeId);
       await fetchDonorData();
-    } catch (err: any) {
-      setActionError(err.message || 'Failed to withdraw pledge.');
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to withdraw pledge.');
       throw err;
     } finally {
       setIsActionLoading(false);
@@ -100,8 +102,8 @@ export const DonorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await donorsApi.deactivateAccount();
       setProfile(null);
       setEligibleRequests([]);
-    } catch (err: any) {
-      setActionError(err.message || 'Failed to deactivate account.');
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to deactivate account.');
       throw err;
     } finally {
       setIsActionLoading(false);

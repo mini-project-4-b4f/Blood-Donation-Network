@@ -75,7 +75,7 @@ export class PledgesService {
                 request,
                 this.clock.now(),
               );
-            if (!eligibility.eligible) {
+            if (eligibility.eligible === false) {
               throw new BadRequestException(eligibility.forDonor);
             }
 
@@ -124,7 +124,7 @@ export class PledgesService {
   async withdrawPledge(
     pledgeId: string,
     userId: string,
-  ): Promise<{ id: string; status: PledgeStatus.WITHDRAWN }> {
+  ): Promise<{ id: string; status: typeof PledgeStatus.WITHDRAWN }> {
     return this.prisma.$transaction(async (tx) => {
       const pledge = await tx.pledge.findUnique({
         where: { id: pledgeId },

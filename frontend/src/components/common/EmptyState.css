@@ -1,0 +1,5 @@
+.ui-empty { padding: 3rem 1.5rem; text-align: center; border: 1px dashed var(--color-border); border-radius: var(--radius); background: var(--color-surface); }
+.ui-empty__icon { display: block; color: var(--color-primary); font-size: 2.5rem; }
+.ui-empty__title { margin-bottom: 0.5rem; font-size: 1.25rem; }
+.ui-empty__description { max-width: 38rem; margin: 0 auto; color: var(--color-text-muted); }
+.ui-empty__action { margin-top: 1.25rem; }

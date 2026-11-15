@@ -1,0 +1,5 @@
+.ui-urgency-badge { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.65rem; border-radius: 2rem; color: var(--color-text); font-size: 0.7rem; font-weight: 750; letter-spacing: 0.03em; }
+.ui-urgency-badge::before { content: ''; width: 0.4rem; height: 0.4rem; border-radius: 50%; background: var(--badge-color); }
+.ui-urgency-badge--critical { --badge-color: var(--color-critical); background: var(--color-primary-light); }
+.ui-urgency-badge--high { --badge-color: var(--color-warning); background: color-mix(in srgb, var(--color-warning) 15%, var(--color-surface)); }
+.ui-urgency-badge--normal { --badge-color: var(--color-info); background: color-mix(in srgb, var(--color-info) 12%, var(--color-surface)); }

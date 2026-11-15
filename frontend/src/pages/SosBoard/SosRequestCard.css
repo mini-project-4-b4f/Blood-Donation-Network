@@ -1,0 +1,8 @@
+.sos-board-card { display: flex; flex-direction: column; padding: 1.5rem; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface); box-shadow: var(--shadow); min-width: 0; }
+.sos-board-card__badges { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1.5rem; }
+.sos-board-card__hospital { font-size: 1.1rem; line-height: 1.4; margin-bottom: 0.5rem; overflow-wrap: anywhere; }
+.sos-board-card__area { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--color-text-muted); }
+.sos-board-card__units { margin: 0.5rem 0 0.4rem; font-size: 0.9rem; }
+.sos-board-card__units strong { color: var(--color-primary-dark); font-size: 1.15rem; }
+.sos-board-card__time { display: block; color: var(--color-text-muted); font-size: 0.73rem; margin-bottom: 1.25rem; }
+.sos-board-card__action { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: auto; border-top: 1px solid var(--color-border); padding-top: 1rem; font-size: 0.82rem; font-weight: 700; text-decoration: none; }
