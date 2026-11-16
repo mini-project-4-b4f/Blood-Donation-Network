@@ -40,6 +40,11 @@ export class DonationsService {
     }
 
     if (request.status !== RequestStatus.OPEN) {
+      this.logger.warnDonationRejected(
+        requestId,
+        dto.donorId,
+        'Donations can only be recorded for OPEN requests.',
+      );
       throw new ConflictException(
         'Donations can only be recorded for OPEN requests.',
       );
@@ -48,6 +53,11 @@ export class DonationsService {
     const today = toDateOnlyString(now);
 
     if (dto.donationDate > today) {
+      this.logger.warnDonationRejected(
+        requestId,
+        dto.donorId,
+        'The donation date cannot be in the future.',
+      );
       throw new BadRequestException(
         'The donation date cannot be in the future.',
       );
@@ -94,6 +104,11 @@ export class DonationsService {
       }
 
       if (currentRequest.status !== RequestStatus.OPEN) {
+        this.logger.warnDonationRejected(
+          requestId,
+          dto.donorId,
+          'Donations can only be recorded for OPEN requests.',
+        );
         throw new ConflictException(
           'Donations can only be recorded for OPEN requests.',
         );
@@ -117,6 +132,11 @@ export class DonationsService {
       );
 
       if (!currentEligibility.eligible) {
+        this.logger.warnDonationRejected(
+          requestId,
+          dto.donorId,
+          currentEligibility.forCoordinator,
+        );
         throw new BadRequestException(currentEligibility.forCoordinator);
       }
 
