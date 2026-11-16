@@ -246,26 +246,47 @@ export class RequestsService {
     }
 
     const updatedRequest = await this.prisma.$transaction(async (tx) => {
-      const unitsRequired = dto.unitsRequired ?? existingRequest.unitsRequired;
+      const currentRequest = await tx.bloodRequest.findUnique({
+        where: { id },
+      });
+
+      if (!currentRequest) {
+        throw new NotFoundException('Blood request not found.');
+      }
+
+      if (currentRequest.status !== RequestStatus.OPEN) {
+        throw new ConflictException('Only OPEN requests can be updated.');
+      }
+
+      const unitsRequired = dto.unitsRequired ?? currentRequest.unitsRequired;
+      if (unitsRequired < currentRequest.unitsCollected) {
+        throw new BadRequestException(
+          'Units required cannot be reduced below the units already collected.',
+        );
+      }
 
       const shouldFulfill =
-        existingRequest.unitsCollected > 0 &&
-        unitsRequired === existingRequest.unitsCollected;
+        currentRequest.unitsCollected > 0 &&
+        unitsRequired === currentRequest.unitsCollected;
 
-      const request = await tx.bloodRequest.update({
-        where: { id },
+      const update = await tx.bloodRequest.updateMany({
+        where: {
+          id,
+          status: RequestStatus.OPEN,
+          unitsCollected: currentRequest.unitsCollected,
+          unitsRequired: currentRequest.unitsRequired,
+        },
         data: {
           unitsRequired: dto.unitsRequired,
           urgency: dto.urgency as Urgency | undefined,
           note: dto.note,
-          ...(shouldFulfill && {
-            status: RequestStatus.FULFILLED,
-          }),
-        },
-        include: {
-          area: true,
+          ...(shouldFulfill && { status: RequestStatus.FULFILLED }),
         },
       });
+
+      if (update.count !== 1) {
+        throw new ConflictException('The request changed while it was being updated. Please try again.');
+      }
 
       if (shouldFulfill) {
         await tx.pledge.updateMany({
@@ -279,10 +300,7 @@ export class RequestsService {
         });
       }
 
-      return {
-        request,
-        fulfilled: shouldFulfill,
-      };
+      return { fulfilled: shouldFulfill };
     });
 
     if (updatedRequest.fulfilled) {
