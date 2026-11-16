@@ -3,7 +3,7 @@ import './EmptyState.css';
 
 interface EmptyStateProps { title: string; description?: string; action?: ReactNode }
 
-export default function EmptyState({ title, description, action }: EmptyStateProps) {
+export function EmptyState({ title, description, action }: EmptyStateProps) {
   return (
     <section className="ui-empty">
       <span className="ui-empty__icon" aria-hidden="true">♡</span>
@@ -13,3 +13,5 @@ export default function EmptyState({ title, description, action }: EmptyStatePro
     </section>
   );
 }
+
+export default EmptyState;
