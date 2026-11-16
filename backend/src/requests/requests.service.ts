@@ -14,6 +14,7 @@ import {
   toApiBloodType,
   toPrismaBloodType,
   normalizePatientRef,
+  toDateOnlyString,
 } from '../common/normalize.util';
 import { ApiBloodType } from '../common/constants';
 
@@ -208,7 +209,7 @@ export class RequestsService {
       })),
       donations: request.donations.map((donation) => ({
         id: donation.id,
-        donationDate: donation.donationDate,
+        donationDate: toDateOnlyString(donation.donationDate),
         units: donation.units,
         createdAt: donation.createdAt,
         donor: {
