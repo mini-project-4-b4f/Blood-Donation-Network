@@ -347,14 +347,26 @@ export class RequestsService {
       throw new ConflictException('Only OPEN requests can be cancelled.');
     }
 
-    const request = await this.prisma.$transaction(async (tx) => {
+    let request: Awaited<ReturnType<typeof this.prisma.bloodRequest.findUniqueOrThrow>>;
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        request = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.bloodRequest.updateMany({
         where: { id, status: RequestStatus.OPEN },
         data: {
           status: RequestStatus.CANCELLED,
           cancelReason: dto.cancelReason,
         },
-      });
+          }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+        break;
+      } catch (error) {
+        const isSerializationConflict =
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2034';
+        if (isSerializationConflict && attempt < 2) continue;
+        throw error;
+      }
+    }
 
       if (updated.count !== 1) {
         throw new ConflictException('Only OPEN requests can be cancelled.');
