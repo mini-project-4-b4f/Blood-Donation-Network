@@ -77,10 +77,26 @@ export class RequestsService {
 
   async createRequest(coordinatorId: string, dto: CreateRequestDto) {
     const area = await this.areasService.findByIdOrThrow(dto.areaId);
+    const patientReference = normalizePatientRef(dto.patientReference);
+
+    const duplicateRequest = await this.prisma.bloodRequest.findFirst({
+      where: {
+        patientReference: { equals: patientReference, mode: 'insensitive' },
+        bloodType: toPrismaBloodType(dto.bloodType as ApiBloodType),
+        status: RequestStatus.OPEN,
+      },
+      select: { id: true },
+    });
+
+    if (duplicateRequest) {
+      throw new ConflictException(
+        'An open request for this patient reference and blood type already exists.',
+      );
+    }
 
     const request = await this.prisma.bloodRequest.create({
       data: {
-        patientReference: normalizePatientRef(dto.patientReference),
+        patientReference,
         bloodType: toPrismaBloodType(dto.bloodType as ApiBloodType),
         unitsRequired: dto.unitsRequired,
         areaId: area.id,
