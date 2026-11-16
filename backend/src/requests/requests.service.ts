@@ -224,34 +224,86 @@ export class RequestsService {
   }
 
   async updateRequest(id: string, dto: UpdateRequestDto) {
-    const existingRequest = await this.prisma.bloodRequest.findUnique({
-      where: { id },
-    });
-
-    if (!existingRequest) {
-      throw new NotFoundException('Blood request not found.');
-    }
-
-    if (existingRequest.status !== RequestStatus.OPEN) {
-      throw new ConflictException('Only OPEN requests can be updated.');
-    }
-
-    if (
-      dto.unitsRequired !== undefined &&
-      dto.unitsRequired < existingRequest.unitsCollected
-    ) {
-      throw new BadRequestException(
-        'Units required cannot be reduced below the units already collected.',
-      );
-    }
-
     let updatedRequest: { fulfilled: boolean };
+
     for (let attempt = 0; ; attempt += 1) {
       try {
-        updatedRequest = await this.prisma.$transaction(async (tx) => {
-      const currentRequest = await tx.bloodRequest.findUnique({
-        where: { id },
-          }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+        updatedRequest = await this.prisma.$transaction(
+          async (tx) => {
+            const currentRequest = await tx.bloodRequest.findUnique({
+              where: { id },
+            });
+
+            if (!currentRequest) {
+              throw new NotFoundException('Blood request not found.');
+            }
+
+            if (currentRequest.status !== RequestStatus.OPEN) {
+              throw new ConflictException('Only OPEN requests can be updated.');
+            }
+
+            const unitsRequired = dto.unitsRequired ?? currentRequest.unitsRequired;
+            if (unitsRequired < currentRequest.unitsCollected) {
+              throw new BadRequestException(
+                'Units required cannot be reduced below the units already collected.',
+              );
+            }
+
+            const shouldFulfill =
+              currentRequest.unitsCollected > 0 &&
+              unitsRequired === currentRequest.unitsCollected;
+
+            const update = await tx.bloodRequest.updateMany({
+              where: {
+                id,
+                status: RequestStatus.OPEN,
+                unitsCollected: currentRequest.unitsCollected,
+                unitsRequired: currentRequest.unitsRequired,
+              },
+              data: {
+                unitsRequired: dto.unitsRequired,
+                urgency: dto.urgency as Urgency | undefined,
+                note: dto.note,
+                ...(shouldFulfill && { status: RequestStatus.FULFILLED }),
+              },
+            });
+
+            if (update.count !== 1) {
+              throw new ConflictException(
+                'The request changed while it was being updated. Please try again.',
+              );
+            }
+
+            // Keep active pledges within the remaining unit capacity. If the
+            // coordinator reduces required units, retain the oldest pledges.
+            const unitsStillNeeded = Math.max(
+              0,
+              unitsRequired - currentRequest.unitsCollected,
+            );
+            const activePledges = await tx.pledge.findMany({
+              where: { requestId: id, status: PledgeStatus.PLEDGED },
+              orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+              select: { id: true },
+            });
+
+            const excessPledgeIds = activePledges
+              .slice(unitsStillNeeded)
+              .map((pledge) => pledge.id);
+
+            if (excessPledgeIds.length > 0) {
+              await tx.pledge.updateMany({
+                where: {
+                  id: { in: excessPledgeIds },
+                  status: PledgeStatus.PLEDGED,
+                },
+                data: { status: PledgeStatus.RELEASED },
+              });
+            }
+
+            return { fulfilled: shouldFulfill };
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
         break;
       } catch (error) {
         const isSerializationConflict =
@@ -261,71 +313,6 @@ export class RequestsService {
         throw error;
       }
     }
-
-      if (!currentRequest) {
-        throw new NotFoundException('Blood request not found.');
-      }
-
-      if (currentRequest.status !== RequestStatus.OPEN) {
-        throw new ConflictException('Only OPEN requests can be updated.');
-      }
-
-      const unitsRequired = dto.unitsRequired ?? currentRequest.unitsRequired;
-      if (unitsRequired < currentRequest.unitsCollected) {
-        throw new BadRequestException(
-          'Units required cannot be reduced below the units already collected.',
-        );
-      }
-
-      const shouldFulfill =
-        currentRequest.unitsCollected > 0 &&
-        unitsRequired === currentRequest.unitsCollected;
-
-      const update = await tx.bloodRequest.updateMany({
-        where: {
-          id,
-          status: RequestStatus.OPEN,
-          unitsCollected: currentRequest.unitsCollected,
-          unitsRequired: currentRequest.unitsRequired,
-        },
-        data: {
-          unitsRequired: dto.unitsRequired,
-          urgency: dto.urgency as Urgency | undefined,
-          note: dto.note,
-          ...(shouldFulfill && { status: RequestStatus.FULFILLED }),
-        },
-      });
-
-      if (update.count !== 1) {
-        throw new ConflictException('The request changed while it was being updated. Please try again.');
-      }
-
-      // Keep active pledges within the remaining unit capacity. If the
-      // coordinator reduces the requested units, retain the oldest pledges
-      // and release the excess ones in the same transaction.
-      const unitsStillNeeded = Math.max(0, unitsRequired - currentRequest.unitsCollected);
-      const activePledges = await tx.pledge.findMany({
-        where: { requestId: id, status: 'PLEDGED' },
-        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-        select: { id: true },
-      });
-
-      const excessPledgeIds = activePledges
-        .slice(unitsStillNeeded)
-        .map((pledge) => pledge.id);
-
-      if (excessPledgeIds.length > 0) {
-        await tx.pledge.updateMany({
-          where: {
-            id: { in: excessPledgeIds },
-            status: 'PLEDGED',
-          },
-          data: { status: 'RELEASED' },
-        });
-      }
-
-      return { fulfilled: shouldFulfill };
-    });
 
     if (updatedRequest.fulfilled) {
       this.logger.logRequestFulfilled(id);
@@ -335,29 +322,39 @@ export class RequestsService {
   }
 
   async cancelRequest(id: string, dto: CancelRequestDto) {
-    const existingRequest = await this.prisma.bloodRequest.findUnique({
-      where: { id },
-    });
+    let cancelled = false;
 
-    if (!existingRequest) {
-      throw new NotFoundException('Blood request not found.');
-    }
-
-    if (existingRequest.status !== RequestStatus.OPEN) {
-      throw new ConflictException('Only OPEN requests can be cancelled.');
-    }
-
-    let request: Awaited<ReturnType<typeof this.prisma.bloodRequest.findUniqueOrThrow>>;
     for (let attempt = 0; ; attempt += 1) {
       try {
-        request = await this.prisma.$transaction(async (tx) => {
-      const updated = await tx.bloodRequest.updateMany({
-        where: { id, status: RequestStatus.OPEN },
-        data: {
-          status: RequestStatus.CANCELLED,
-          cancelReason: dto.cancelReason,
-        },
-          }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+        await this.prisma.$transaction(
+          async (tx) => {
+            const updated = await tx.bloodRequest.updateMany({
+              where: { id, status: RequestStatus.OPEN },
+              data: {
+                status: RequestStatus.CANCELLED,
+                cancelReason: dto.cancelReason,
+              },
+            });
+
+            if (updated.count !== 1) {
+              const exists = await tx.bloodRequest.findUnique({
+                where: { id },
+                select: { id: true },
+              });
+              if (!exists) {
+                throw new NotFoundException('Blood request not found.');
+              }
+              throw new ConflictException('Only OPEN requests can be cancelled.');
+            }
+
+            await tx.pledge.updateMany({
+              where: { requestId: id, status: PledgeStatus.PLEDGED },
+              data: { status: PledgeStatus.RELEASED },
+            });
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+        cancelled = true;
         break;
       } catch (error) {
         const isSerializationConflict =
@@ -368,22 +365,9 @@ export class RequestsService {
       }
     }
 
-      if (updated.count !== 1) {
-        throw new ConflictException('Only OPEN requests can be cancelled.');
-      }
-
-      await tx.pledge.updateMany({
-        where: { requestId: id, status: 'PLEDGED' },
-        data: { status: 'RELEASED' },
-      });
-
-      return tx.bloodRequest.findUniqueOrThrow({
-        where: { id },
-        include: { area: true },
-      });
-    });
-
-    this.logger.logRequestCancelled(id, dto.cancelReason);
+    if (cancelled) {
+      this.logger.logRequestCancelled(id, dto.cancelReason);
+    }
 
     return this.findRequestById(id);
   }
