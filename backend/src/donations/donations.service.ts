@@ -178,8 +178,10 @@ export class DonationsService {
       const donorUpdate = await tx.donorProfile.updateMany({
         where: {
           id: currentDonor.id,
+          areaId: currentDonor.areaId,
           isAvailable: true,
           lastDonationDate: currentDonor.lastDonationDate,
+          user: { is: { isActive: true } },
         },
         data: {
           lastDonationDate: latestDonationDate,
