@@ -245,10 +245,22 @@ export class RequestsService {
       );
     }
 
-    const updatedRequest = await this.prisma.$transaction(async (tx) => {
+    let updatedRequest: { fulfilled: boolean };
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        updatedRequest = await this.prisma.$transaction(async (tx) => {
       const currentRequest = await tx.bloodRequest.findUnique({
         where: { id },
-      });
+          }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+        break;
+      } catch (error) {
+        const isSerializationConflict =
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2034';
+        if (isSerializationConflict && attempt < 2) continue;
+        throw error;
+      }
+    }
 
       if (!currentRequest) {
         throw new NotFoundException('Blood request not found.');
