@@ -288,15 +288,27 @@ export class RequestsService {
         throw new ConflictException('The request changed while it was being updated. Please try again.');
       }
 
-      if (shouldFulfill) {
+      // Keep active pledges within the remaining unit capacity. If the
+      // coordinator reduces the requested units, retain the oldest pledges
+      // and release the excess ones in the same transaction.
+      const unitsStillNeeded = Math.max(0, unitsRequired - currentRequest.unitsCollected);
+      const activePledges = await tx.pledge.findMany({
+        where: { requestId: id, status: 'PLEDGED' },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: { id: true },
+      });
+
+      const excessPledgeIds = activePledges
+        .slice(unitsStillNeeded)
+        .map((pledge) => pledge.id);
+
+      if (excessPledgeIds.length > 0) {
         await tx.pledge.updateMany({
           where: {
-            requestId: id,
+            id: { in: excessPledgeIds },
             status: 'PLEDGED',
           },
-          data: {
-            status: 'RELEASED',
-          },
+          data: { status: 'RELEASED' },
         });
       }
 
