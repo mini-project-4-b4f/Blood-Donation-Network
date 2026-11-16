@@ -2,7 +2,7 @@ import './ErrorMessage.css';
 
 interface ErrorMessageProps { message: string; onRetry?: () => void }
 
-export default function ErrorMessage({ message, onRetry }: ErrorMessageProps) {
+export function ErrorMessage({ message, onRetry }: ErrorMessageProps) {
   return (
     <div className="ui-error" role="alert">
       <p className="ui-error__message">{message}</p>
@@ -10,3 +10,5 @@ export default function ErrorMessage({ message, onRetry }: ErrorMessageProps) {
     </div>
   );
 }
+
+export default ErrorMessage;

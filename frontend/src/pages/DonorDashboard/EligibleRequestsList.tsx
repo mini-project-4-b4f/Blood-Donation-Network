@@ -17,7 +17,7 @@ export const EligibleRequestsList: React.FC<EligibleRequestsListProps> = ({
   return (
     <div className="donor-dashboard-section">
       <div className="donor-dashboard-section__header-row">
-        <h3 className="donor-dashboard-section__title"> Emergency Requests I Can Help With in My Area (Homs)</h3>
+        <h3 className="donor-dashboard-section__title"> Emergency Requests I Can Help With</h3>
         <span className="donor-dashboard-section__subtitle-tag">Blood types compatible with you</span>
       </div>
 
@@ -34,9 +34,9 @@ export const EligibleRequestsList: React.FC<EligibleRequestsListProps> = ({
                 <div className="donor-dashboard-request-card__details">
                   <div className="donor-dashboard-request-card__top-line">
                     <h4 className="donor-dashboard-request-card__hospital">{request.hospital}</h4>
-                    <span className="donor-dashboard-badge donor-dashboard-badge--critical">CRITICAL</span>
+                    <span className={`donor-dashboard-badge donor-dashboard-badge--${request.urgency.toLowerCase()}`}>{request.urgency}</span>
                   </div>
-                  <p className="donor-dashboard-request-card__desc">Emergency open heart surgery case - Surgery in progress.</p>
+                  <p className="donor-dashboard-request-card__desc">Area: {request.area.name} · Active pledges: {request.activePledgesCount}</p>
                   <p className="donor-dashboard-request-card__units">Remaining: <strong>{request.unitsStillNeeded} units</strong></p>
                 </div>
               </div>

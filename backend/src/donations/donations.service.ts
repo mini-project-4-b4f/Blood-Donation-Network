@@ -4,13 +4,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PledgeStatus, RequestStatus } from '@prisma/client';
+import { PledgeStatus, Prisma, RequestStatus } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { MatchingService } from '../matching/matching.service';
 import { ClockService } from '../common/clock.service';
 import { AppLogger } from '../common/app-logger.service';
-import { toDateOnlyString } from '../common/normalize.util';
+import { toApiBloodType, toDateOnlyString } from '../common/normalize.util';
 
 import { RecordDonationDto } from './dto/record-donation.dto';
 
@@ -40,6 +40,11 @@ export class DonationsService {
     }
 
     if (request.status !== RequestStatus.OPEN) {
+      this.logger.warnDonationRejected(
+        requestId,
+        dto.donorId,
+        'Donations can only be recorded for OPEN requests.',
+      );
       throw new ConflictException(
         'Donations can only be recorded for OPEN requests.',
       );
@@ -48,6 +53,11 @@ export class DonationsService {
     const today = toDateOnlyString(now);
 
     if (dto.donationDate > today) {
+      this.logger.warnDonationRejected(
+        requestId,
+        dto.donorId,
+        'The donation date cannot be in the future.',
+      );
       throw new BadRequestException(
         'The donation date cannot be in the future.',
       );
@@ -83,10 +93,11 @@ export class DonationsService {
 
     const donationDate = new Date(`${dto.donationDate}T00:00:00.000Z`);
 
-    const result = await this.prisma.$transaction(async (tx) => {
+    const executeTransaction = () => this.prisma.$transaction(async (tx) => {
       // Recheck the request inside the transaction.
       const currentRequest = await tx.bloodRequest.findUnique({
         where: { id: requestId },
+        include: { area: true },
       });
 
       if (!currentRequest) {
@@ -94,9 +105,40 @@ export class DonationsService {
       }
 
       if (currentRequest.status !== RequestStatus.OPEN) {
+        this.logger.warnDonationRejected(
+          requestId,
+          dto.donorId,
+          'Donations can only be recorded for OPEN requests.',
+        );
         throw new ConflictException(
           'Donations can only be recorded for OPEN requests.',
         );
+      }
+
+      // Re-read donor state in the transaction so eligibility is not based on
+      // a stale profile or last-donation date.
+      const currentDonor = await tx.donorProfile.findUnique({
+        where: { id: dto.donorId },
+        include: { user: true, area: true },
+      });
+
+      if (!currentDonor) {
+        throw new NotFoundException('Donor not found.');
+      }
+
+      const currentEligibility = this.matchingService.checkDonorEligibilityForRequest(
+        currentDonor,
+        currentRequest,
+        now,
+      );
+
+      if (currentEligibility.eligible === false) {
+        this.logger.warnDonationRejected(
+          requestId,
+          dto.donorId,
+          currentEligibility.forCoordinator,
+        );
+        throw new BadRequestException(currentEligibility.forCoordinator);
       }
 
       // Atomically reserve one unit without exceeding the required units.
@@ -122,18 +164,24 @@ export class DonationsService {
         );
       }
 
+      const progressRequest = await tx.bloodRequest.findUniqueOrThrow({
+        where: { id: requestId },
+      });
+
       // Prevent a concurrent donation from updating the same donor
       // using an outdated lastDonationDate.
       const latestDonationDate =
-        !donor.lastDonationDate || donationDate > donor.lastDonationDate
+        !currentDonor.lastDonationDate || donationDate > currentDonor.lastDonationDate
           ? donationDate
-          : donor.lastDonationDate;
+          : currentDonor.lastDonationDate;
 
       const donorUpdate = await tx.donorProfile.updateMany({
         where: {
-          id: donor.id,
+          id: currentDonor.id,
+          areaId: currentDonor.areaId,
           isAvailable: true,
-          lastDonationDate: donor.lastDonationDate,
+          lastDonationDate: currentDonor.lastDonationDate,
+          user: { is: { isActive: true } },
         },
         data: {
           lastDonationDate: latestDonationDate,
@@ -148,7 +196,7 @@ export class DonationsService {
 
       const donation = await tx.donation.create({
         data: {
-          donorId: donor.id,
+          donorId: currentDonor.id,
           requestId,
           recordedById: coordinatorId,
           donationDate,
@@ -156,14 +204,10 @@ export class DonationsService {
         },
       });
 
-      const updatedRequest = await tx.bloodRequest.findUniqueOrThrow({
-        where: { id: requestId },
-      });
-
-      // Complete this donor's active pledge for this request.
+      // Complete this donor's active pledge for this request, if any.
       await tx.pledge.updateMany({
         where: {
-          donorId: donor.id,
+          donorId: currentDonor.id,
           requestId,
           status: PledgeStatus.PLEDGED,
         },
@@ -173,41 +217,128 @@ export class DonationsService {
       });
 
       const fulfilled =
-        updatedRequest.unitsCollected >= updatedRequest.unitsRequired;
+        progressRequest.unitsCollected >= progressRequest.unitsRequired;
+
+      // Every completed donation reduces remaining capacity, even when the
+      // donor did not have a pledge. Keep the oldest pledges up to that
+      // capacity and release any excess pledges atomically.
+      const remainingUnits = Math.max(
+        0,
+        progressRequest.unitsRequired - progressRequest.unitsCollected,
+      );
+      const activePledges = await tx.pledge.findMany({
+        where: { requestId, status: PledgeStatus.PLEDGED },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: { id: true },
+      });
+      const excessPledgeIds = activePledges
+        .slice(remainingUnits)
+        .map((pledge) => pledge.id);
+
+      if (excessPledgeIds.length > 0) {
+        await tx.pledge.updateMany({
+          where: {
+            id: { in: excessPledgeIds },
+            status: PledgeStatus.PLEDGED,
+          },
+          data: { status: PledgeStatus.RELEASED },
+        });
+      }
 
       if (fulfilled) {
         await tx.bloodRequest.update({
           where: { id: requestId },
-          data: {
-            status: RequestStatus.FULFILLED,
-          },
-        });
-
-        // Release all remaining active pledges.
-        await tx.pledge.updateMany({
-          where: {
-            requestId,
-            status: PledgeStatus.PLEDGED,
-          },
-          data: {
-            status: PledgeStatus.RELEASED,
-          },
+          data: { status: RequestStatus.FULFILLED },
         });
       }
+
+      const updatedRequest = await tx.bloodRequest.findUniqueOrThrow({
+        where: { id: requestId },
+        include: {
+          area: true,
+          pledges: {
+            orderBy: { createdAt: 'desc' },
+            include: {
+              donor: {
+                include: {
+                  user: { select: { phone: true } },
+                  area: true,
+                },
+              },
+            },
+          },
+          donations: {
+            orderBy: { donationDate: 'desc' },
+            include: {
+              donor: {
+                include: { user: { select: { phone: true } } },
+              },
+              recordedBy: { select: { id: true, phone: true, email: true } },
+            },
+          },
+        },
+      });
 
       return {
         donation,
         fulfilled,
+        request: updatedRequest,
       };
-    });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+    let result: Awaited<ReturnType<typeof executeTransaction>>;
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        result = await executeTransaction();
+        break;
+      } catch (error) {
+        const isSerializationConflict =
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2034';
+        if (isSerializationConflict && attempt < 2) continue;
+        throw error;
+      }
+    }
 
     // Log only after the transaction succeeds.
-    this.logger.logDonationRecorded(result.donation.id, requestId, donor.id);
+    this.logger.logDonationRecorded(result.donation.id, requestId, dto.donorId);
 
     if (result.fulfilled) {
       this.logger.logRequestFulfilled(requestId);
     }
 
-    return result.donation;
+
+    const requestDetails = result.request;
+    return {
+      ...requestDetails,
+      bloodType: toApiBloodType(requestDetails.bloodType),
+      unitsStillNeeded: Math.max(0, requestDetails.unitsRequired - requestDetails.unitsCollected),
+      activePledgesCount: requestDetails.pledges.filter((pledge) => pledge.status === PledgeStatus.PLEDGED).length,
+      pledges: requestDetails.pledges.map((pledge) => ({
+        id: pledge.id,
+        status: pledge.status,
+        createdAt: pledge.createdAt,
+        donor: {
+          id: pledge.donor.id,
+          fullName: pledge.donor.fullName,
+          phone: pledge.donor.user.phone,
+          bloodType: toApiBloodType(pledge.donor.bloodType),
+          area: pledge.donor.area,
+        },
+      })),
+      donations: requestDetails.donations.map((donationItem) => ({
+        id: donationItem.id,
+        donationDate: toDateOnlyString(donationItem.donationDate),
+        units: donationItem.units,
+        createdAt: donationItem.createdAt,
+        donor: {
+          id: donationItem.donor.id,
+          fullName: donationItem.donor.fullName,
+          phone: donationItem.donor.user.phone,
+          bloodType: toApiBloodType(donationItem.donor.bloodType),
+        },
+        recordedBy: donationItem.recordedBy,
+      })),
+    };
   }
 }

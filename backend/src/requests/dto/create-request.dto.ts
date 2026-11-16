@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -57,7 +58,9 @@ export class CreateRequestDto {
     example: 'CRITICAL',
     enum: ['CRITICAL', 'HIGH', 'NORMAL'],
   })
-  @IsValidBloodType()
+  @IsIn(['CRITICAL', 'HIGH', 'NORMAL'], {
+    message: 'Urgency must be CRITICAL, HIGH, or NORMAL.',
+  })
   urgency: string;
 
   @ApiProperty({

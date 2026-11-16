@@ -11,10 +11,12 @@ export function buttonClassName({ variant = 'primary', size = 'md', className = 
   return `ui-button ui-button--${variant} ui-button--${size} ${className}`.trim();
 }
 
-export default function Button({ variant, size, isLoading = false, disabled, type = 'button', className, children, ...props }: ButtonProps) {
+export function Button({ variant, size, isLoading = false, disabled, type = 'button', className, children, ...props }: ButtonProps) {
   return (
     <button {...props} type={type} disabled={disabled || isLoading} aria-busy={isLoading || undefined} className={buttonClassName({ variant, size, className })}>
       {isLoading ? 'Working…' : children}
     </button>
   );
 }
+
+export default Button;

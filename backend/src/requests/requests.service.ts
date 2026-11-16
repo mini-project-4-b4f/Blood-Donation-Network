@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { BloodType, Prisma, RequestStatus, Urgency } from '@prisma/client';
+import { BloodType, PledgeStatus, Prisma, RequestStatus, Urgency } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { AreasService } from '../areas/areas.service';
@@ -14,6 +14,7 @@ import {
   toApiBloodType,
   toPrismaBloodType,
   normalizePatientRef,
+  toDateOnlyString,
 } from '../common/normalize.util';
 import { ApiBloodType } from '../common/constants';
 
@@ -31,12 +32,16 @@ export class RequestsService {
     private readonly logger: AppLogger,
   ) {}
 
-  private mapRequest<T extends { bloodType: BloodType }>(request: T) {
-    return {
-      ...request,
-      bloodType: toApiBloodType(request.bloodType),
-    };
-  }
+  private mapRequest<T extends { bloodType: BloodType }>(
+  request: T,
+): Omit<T, 'bloodType'> & {
+  bloodType: ReturnType<typeof toApiBloodType>;
+} {
+  return {
+    ...request,
+    bloodType: toApiBloodType(request.bloodType),
+  };
+}
 
   async getPublicSosRequests() {
     const requests = await this.prisma.bloodRequest.findMany({
@@ -58,7 +63,7 @@ export class RequestsService {
           },
         },
       },
-      orderBy: [{ urgency: 'asc' }, { createdAt: 'desc' }],
+      orderBy: [{ urgency: 'asc' }, { createdAt: 'asc' }],
     });
 
     return requests.map((request) => ({
@@ -77,22 +82,53 @@ export class RequestsService {
 
   async createRequest(coordinatorId: string, dto: CreateRequestDto) {
     const area = await this.areasService.findByIdOrThrow(dto.areaId);
+    const patientReference = normalizePatientRef(dto.patientReference);
+    let request: Prisma.BloodRequestGetPayload<{ include: { area: true } }>;
 
-    const request = await this.prisma.bloodRequest.create({
-      data: {
-        patientReference: normalizePatientRef(dto.patientReference),
-        bloodType: toPrismaBloodType(dto.bloodType as ApiBloodType),
-        unitsRequired: dto.unitsRequired,
-        areaId: area.id,
-        urgency: dto.urgency as Urgency,
-        hospital: dto.hospital,
-        note: dto.note,
-        createdById: coordinatorId,
-      },
-      include: {
-        area: true,
-      },
-    });
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        request = await this.prisma.$transaction(
+          async (tx) => {
+            const duplicateRequest = await tx.bloodRequest.findFirst({
+              where: {
+                patientReference: { equals: patientReference, mode: 'insensitive' },
+                bloodType: toPrismaBloodType(dto.bloodType as ApiBloodType),
+                status: RequestStatus.OPEN,
+              },
+              select: { id: true },
+            });
+
+            if (duplicateRequest) {
+              throw new ConflictException(
+                'An open request for this patient reference and blood type already exists.',
+              );
+            }
+
+            return tx.bloodRequest.create({
+              data: {
+                patientReference,
+                bloodType: toPrismaBloodType(dto.bloodType as ApiBloodType),
+                unitsRequired: dto.unitsRequired,
+                areaId: area.id,
+                urgency: dto.urgency as Urgency,
+                hospital: dto.hospital,
+                note: dto.note,
+                createdById: coordinatorId,
+              },
+              include: { area: true },
+            });
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+        break;
+      } catch (error) {
+        const isSerializationConflict =
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2034';
+        if (isSerializationConflict && attempt < 2) continue;
+        throw error;
+      }
+    }
 
     this.logger.logRequestCreated(
       request.id,
@@ -102,7 +138,7 @@ export class RequestsService {
       request.urgency,
     );
 
-    return this.mapRequest(request);
+    return this.findRequestById(request.id);
   }
 
   async findAllRequests(filters: RequestFiltersQueryDto) {
@@ -125,13 +161,21 @@ export class RequestsService {
       where,
       include: {
         area: true,
+        pledges: {
+          where: { status: 'PLEDGED' },
+          select: { id: true },
+        },
       },
       orderBy: {
         createdAt: 'desc',
       },
     });
 
-    return requests.map((request) => this.mapRequest(request));
+    return requests.map(({ pledges, ...request }) => ({
+      ...this.mapRequest(request),
+      unitsStillNeeded: Math.max(0, request.unitsRequired - request.unitsCollected),
+      activePledgesCount: pledges.length,
+    }));
   }
 
   async findRequestById(id: string) {
@@ -139,6 +183,26 @@ export class RequestsService {
       where: { id },
       include: {
         area: true,
+        pledges: {
+          orderBy: { createdAt: 'desc' },
+          include: {
+            donor: {
+              include: {
+                user: { select: { phone: true } },
+                area: true,
+              },
+            },
+          },
+        },
+        donations: {
+          orderBy: { donationDate: 'desc' },
+          include: {
+            donor: {
+              include: { user: { select: { phone: true } } },
+            },
+            recordedBy: { select: { id: true, phone: true, email: true } },
+          },
+        },
       },
     });
 
@@ -146,105 +210,185 @@ export class RequestsService {
       throw new NotFoundException('Blood request not found.');
     }
 
-    return this.mapRequest(request);
+    return {
+      ...this.mapRequest(request),
+      unitsStillNeeded: Math.max(0, request.unitsRequired - request.unitsCollected),
+      activePledgesCount: request.pledges.filter((pledge) => pledge.status === 'PLEDGED').length,
+      pledges: request.pledges.map((pledge) => ({
+        id: pledge.id,
+        status: pledge.status,
+        createdAt: pledge.createdAt,
+        donor: {
+          id: pledge.donor.id,
+          fullName: pledge.donor.fullName,
+          phone: pledge.donor.user.phone,
+          bloodType: toApiBloodType(pledge.donor.bloodType),
+          area: pledge.donor.area,
+        },
+      })),
+      donations: request.donations.map((donation) => ({
+        id: donation.id,
+        donationDate: toDateOnlyString(donation.donationDate),
+        units: donation.units,
+        createdAt: donation.createdAt,
+        donor: {
+          id: donation.donor.id,
+          fullName: donation.donor.fullName,
+          phone: donation.donor.user.phone,
+          bloodType: toApiBloodType(donation.donor.bloodType),
+        },
+        recordedBy: donation.recordedBy,
+      })),
+    };
   }
 
   async updateRequest(id: string, dto: UpdateRequestDto) {
-    const existingRequest = await this.prisma.bloodRequest.findUnique({
-      where: { id },
-    });
+    let updatedRequest: { fulfilled: boolean };
 
-    if (!existingRequest) {
-      throw new NotFoundException('Blood request not found.');
-    }
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        updatedRequest = await this.prisma.$transaction(
+          async (tx) => {
+            const currentRequest = await tx.bloodRequest.findUnique({
+              where: { id },
+            });
 
-    if (existingRequest.status !== RequestStatus.OPEN) {
-      throw new ConflictException('Only OPEN requests can be updated.');
-    }
+            if (!currentRequest) {
+              throw new NotFoundException('Blood request not found.');
+            }
 
-    if (
-      dto.unitsRequired !== undefined &&
-      dto.unitsRequired < existingRequest.unitsCollected
-    ) {
-      throw new BadRequestException(
-        'Units required cannot be reduced below the units already collected.',
-      );
-    }
+            if (currentRequest.status !== RequestStatus.OPEN) {
+              throw new ConflictException('Only OPEN requests can be updated.');
+            }
 
-    const updatedRequest = await this.prisma.$transaction(async (tx) => {
-      const unitsRequired = dto.unitsRequired ?? existingRequest.unitsRequired;
+            const unitsRequired = dto.unitsRequired ?? currentRequest.unitsRequired;
+            if (unitsRequired < currentRequest.unitsCollected) {
+              throw new BadRequestException(
+                'Units required cannot be reduced below the units already collected.',
+              );
+            }
 
-      const shouldFulfill =
-        existingRequest.unitsCollected > 0 &&
-        unitsRequired === existingRequest.unitsCollected;
+            const shouldFulfill =
+              currentRequest.unitsCollected > 0 &&
+              unitsRequired === currentRequest.unitsCollected;
 
-      const request = await tx.bloodRequest.update({
-        where: { id },
-        data: {
-          unitsRequired: dto.unitsRequired,
-          urgency: dto.urgency as Urgency | undefined,
-          note: dto.note,
-          ...(shouldFulfill && {
-            status: RequestStatus.FULFILLED,
-          }),
-        },
-        include: {
-          area: true,
-        },
-      });
+            const update = await tx.bloodRequest.updateMany({
+              where: {
+                id,
+                status: RequestStatus.OPEN,
+                unitsCollected: currentRequest.unitsCollected,
+                unitsRequired: currentRequest.unitsRequired,
+              },
+              data: {
+                unitsRequired: dto.unitsRequired,
+                urgency: dto.urgency as Urgency | undefined,
+                note: dto.note,
+                ...(shouldFulfill && { status: RequestStatus.FULFILLED }),
+              },
+            });
 
-      if (shouldFulfill) {
-        await tx.pledge.updateMany({
-          where: {
-            requestId: id,
-            status: 'PLEDGED',
+            if (update.count !== 1) {
+              throw new ConflictException(
+                'The request changed while it was being updated. Please try again.',
+              );
+            }
+
+            // Keep active pledges within the remaining unit capacity. If the
+            // coordinator reduces required units, retain the oldest pledges.
+            const unitsStillNeeded = Math.max(
+              0,
+              unitsRequired - currentRequest.unitsCollected,
+            );
+            const activePledges = await tx.pledge.findMany({
+              where: { requestId: id, status: PledgeStatus.PLEDGED },
+              orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+              select: { id: true },
+            });
+
+            const excessPledgeIds = activePledges
+              .slice(unitsStillNeeded)
+              .map((pledge) => pledge.id);
+
+            if (excessPledgeIds.length > 0) {
+              await tx.pledge.updateMany({
+                where: {
+                  id: { in: excessPledgeIds },
+                  status: PledgeStatus.PLEDGED,
+                },
+                data: { status: PledgeStatus.RELEASED },
+              });
+            }
+
+            return { fulfilled: shouldFulfill };
           },
-          data: {
-            status: 'RELEASED',
-          },
-        });
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+        break;
+      } catch (error) {
+        const isSerializationConflict =
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2034';
+        if (isSerializationConflict && attempt < 2) continue;
+        throw error;
       }
-
-      return {
-        request,
-        fulfilled: shouldFulfill,
-      };
-    });
+    }
 
     if (updatedRequest.fulfilled) {
       this.logger.logRequestFulfilled(id);
     }
 
-    return this.mapRequest(updatedRequest.request);
+    return this.findRequestById(id);
   }
 
   async cancelRequest(id: string, dto: CancelRequestDto) {
-    const existingRequest = await this.prisma.bloodRequest.findUnique({
-      where: { id },
-    });
+    let cancelled = false;
 
-    if (!existingRequest) {
-      throw new NotFoundException('Blood request not found.');
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        await this.prisma.$transaction(
+          async (tx) => {
+            const updated = await tx.bloodRequest.updateMany({
+              where: { id, status: RequestStatus.OPEN },
+              data: {
+                status: RequestStatus.CANCELLED,
+                cancelReason: dto.cancelReason,
+              },
+            });
+
+            if (updated.count !== 1) {
+              const exists = await tx.bloodRequest.findUnique({
+                where: { id },
+                select: { id: true },
+              });
+              if (!exists) {
+                throw new NotFoundException('Blood request not found.');
+              }
+              throw new ConflictException('Only OPEN requests can be cancelled.');
+            }
+
+            await tx.pledge.updateMany({
+              where: { requestId: id, status: PledgeStatus.PLEDGED },
+              data: { status: PledgeStatus.RELEASED },
+            });
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+        cancelled = true;
+        break;
+      } catch (error) {
+        const isSerializationConflict =
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2034';
+        if (isSerializationConflict && attempt < 2) continue;
+        throw error;
+      }
     }
 
-    if (existingRequest.status !== RequestStatus.OPEN) {
-      throw new ConflictException('Only OPEN requests can be cancelled.');
+    if (cancelled) {
+      this.logger.logRequestCancelled(id, dto.cancelReason);
     }
 
-    const request = await this.prisma.bloodRequest.update({
-      where: { id },
-      data: {
-        status: RequestStatus.CANCELLED,
-        cancelReason: dto.cancelReason,
-      },
-      include: {
-        area: true,
-      },
-    });
-
-    this.logger.logRequestCancelled(id, dto.cancelReason);
-
-    return this.mapRequest(request);
+    return this.findRequestById(id);
   }
 
   async getEligibleDonors(id: string) {

@@ -1,4 +1,4 @@
-import type { DonorDashboardProfile, EligibleOpenRequest, UpdateDonorProfileDto } from '../types/donor.types';
+import type { CoordinatorDonorItem, DonorDashboardProfile, EligibleOpenRequest, UpdateDonorProfileDto } from '../types/donor.types';
 import { request } from './http';
 
 export const donorsApi = {
@@ -13,3 +13,7 @@ export const donorsApi = {
 
   deactivateAccount: () => request<{ message: string }>('/donors/me/deactivate', { method: 'PATCH' }),
 };
+
+export function getAllDonors(): Promise<CoordinatorDonorItem[]> {
+  return request<CoordinatorDonorItem[]>('/donors');
+}

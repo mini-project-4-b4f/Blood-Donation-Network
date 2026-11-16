@@ -3,7 +3,7 @@ import './BloodTypeBadge.css';
 
 interface BloodTypeBadgeProps { bloodType: BloodType; isExactMatch?: boolean }
 
-export default function BloodTypeBadge({ bloodType, isExactMatch = false }: BloodTypeBadgeProps) {
+export function BloodTypeBadge({ bloodType, isExactMatch = false }: BloodTypeBadgeProps) {
   return (
     <span className="ui-blood-type">
       <span className="ui-blood-type__value" aria-label={`Blood type ${bloodType}`}>{bloodType}</span>
@@ -11,3 +11,5 @@ export default function BloodTypeBadge({ bloodType, isExactMatch = false }: Bloo
     </span>
   );
 }
+
+export default BloodTypeBadge;
