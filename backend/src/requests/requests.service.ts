@@ -32,12 +32,16 @@ export class RequestsService {
     private readonly logger: AppLogger,
   ) {}
 
-  private mapRequest<T extends { bloodType: BloodType }>(request: T) {
-    return {
-      ...request,
-      bloodType: toApiBloodType(request.bloodType),
-    };
-  }
+  private mapRequest<T extends { bloodType: BloodType }>(
+  request: T,
+): Omit<T, 'bloodType'> & {
+  bloodType: ReturnType<typeof toApiBloodType>;
+} {
+  return {
+    ...request,
+    bloodType: toApiBloodType(request.bloodType),
+  };
+}
 
   async getPublicSosRequests() {
     const requests = await this.prisma.bloodRequest.findMany({

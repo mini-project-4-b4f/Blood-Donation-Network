@@ -132,7 +132,7 @@ export class DonationsService {
         now,
       );
 
-      if (!currentEligibility.eligible) {
+      if (currentEligibility.eligible === false) {
         this.logger.warnDonationRejected(
           requestId,
           dto.donorId,
