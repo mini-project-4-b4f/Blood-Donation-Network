@@ -143,6 +143,10 @@ export class DonationsService {
         );
       }
 
+      const progressRequest = await tx.bloodRequest.findUniqueOrThrow({
+        where: { id: requestId },
+      });
+
       // Prevent a concurrent donation from updating the same donor
       // using an outdated lastDonationDate.
       const latestDonationDate =
@@ -169,7 +173,7 @@ export class DonationsService {
 
       const donation = await tx.donation.create({
         data: {
-          donorId: donor.id,
+          donorId: currentDonor.id,
           requestId,
           recordedById: coordinatorId,
           donationDate,
@@ -180,7 +184,7 @@ export class DonationsService {
       // Complete this donor's active pledge for this request.
       await tx.pledge.updateMany({
         where: {
-          donorId: donor.id,
+          donorId: currentDonor.id,
           requestId,
           status: PledgeStatus.PLEDGED,
         },
@@ -190,7 +194,7 @@ export class DonationsService {
       });
 
       const fulfilled =
-        updatedRequest.unitsCollected >= updatedRequest.unitsRequired;
+        progressRequest.unitsCollected >= progressRequest.unitsRequired;
 
       if (fulfilled) {
         await tx.bloodRequest.update({
@@ -247,7 +251,7 @@ export class DonationsService {
     });
 
     // Log only after the transaction succeeds.
-    this.logger.logDonationRecorded(result.donation.id, requestId, donor.id);
+    this.logger.logDonationRecorded(result.donation.id, requestId, dto.donorId);
 
     if (result.fulfilled) {
       this.logger.logRequestFulfilled(requestId);
