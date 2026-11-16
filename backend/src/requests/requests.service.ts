@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { BloodType, Prisma, RequestStatus, Urgency } from '@prisma/client';
+import { BloodType, PledgeStatus, Prisma, RequestStatus, Urgency } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { AreasService } from '../areas/areas.service';
