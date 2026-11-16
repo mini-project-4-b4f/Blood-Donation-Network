@@ -58,7 +58,7 @@ export class RequestsService {
           },
         },
       },
-      orderBy: [{ urgency: 'asc' }, { createdAt: 'desc' }],
+      orderBy: [{ urgency: 'asc' }, { createdAt: 'asc' }],
     });
 
     return requests.map((request) => ({
@@ -125,13 +125,21 @@ export class RequestsService {
       where,
       include: {
         area: true,
+        pledges: {
+          where: { status: 'PLEDGED' },
+          select: { id: true },
+        },
       },
       orderBy: {
         createdAt: 'desc',
       },
     });
 
-    return requests.map((request) => this.mapRequest(request));
+    return requests.map(({ pledges, ...request }) => ({
+      ...this.mapRequest(request),
+      unitsStillNeeded: Math.max(0, request.unitsRequired - request.unitsCollected),
+      activePledgesCount: pledges.length,
+    }));
   }
 
   async findRequestById(id: string) {
@@ -139,6 +147,26 @@ export class RequestsService {
       where: { id },
       include: {
         area: true,
+        pledges: {
+          orderBy: { createdAt: 'desc' },
+          include: {
+            donor: {
+              include: {
+                user: { select: { phone: true } },
+                area: true,
+              },
+            },
+          },
+        },
+        donations: {
+          orderBy: { donationDate: 'desc' },
+          include: {
+            donor: {
+              include: { user: { select: { phone: true } } },
+            },
+            recordedBy: { select: { id: true, phone: true, email: true } },
+          },
+        },
       },
     });
 
@@ -146,7 +174,36 @@ export class RequestsService {
       throw new NotFoundException('Blood request not found.');
     }
 
-    return this.mapRequest(request);
+    return {
+      ...this.mapRequest(request),
+      unitsStillNeeded: Math.max(0, request.unitsRequired - request.unitsCollected),
+      activePledgesCount: request.pledges.filter((pledge) => pledge.status === 'PLEDGED').length,
+      pledges: request.pledges.map((pledge) => ({
+        id: pledge.id,
+        status: pledge.status,
+        createdAt: pledge.createdAt,
+        donor: {
+          id: pledge.donor.id,
+          fullName: pledge.donor.fullName,
+          phone: pledge.donor.user.phone,
+          bloodType: toApiBloodType(pledge.donor.bloodType),
+          area: pledge.donor.area,
+        },
+      })),
+      donations: request.donations.map((donation) => ({
+        id: donation.id,
+        donationDate: donation.donationDate,
+        units: donation.units,
+        createdAt: donation.createdAt,
+        donor: {
+          id: donation.donor.id,
+          fullName: donation.donor.fullName,
+          phone: donation.donor.user.phone,
+          bloodType: toApiBloodType(donation.donor.bloodType),
+        },
+        recordedBy: donation.recordedBy,
+      })),
+    };
   }
 
   async updateRequest(id: string, dto: UpdateRequestDto) {
@@ -231,15 +288,28 @@ export class RequestsService {
       throw new ConflictException('Only OPEN requests can be cancelled.');
     }
 
-    const request = await this.prisma.bloodRequest.update({
-      where: { id },
-      data: {
-        status: RequestStatus.CANCELLED,
-        cancelReason: dto.cancelReason,
-      },
-      include: {
-        area: true,
-      },
+    const request = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.bloodRequest.updateMany({
+        where: { id, status: RequestStatus.OPEN },
+        data: {
+          status: RequestStatus.CANCELLED,
+          cancelReason: dto.cancelReason,
+        },
+      });
+
+      if (updated.count !== 1) {
+        throw new ConflictException('Only OPEN requests can be cancelled.');
+      }
+
+      await tx.pledge.updateMany({
+        where: { requestId: id, status: 'PLEDGED' },
+        data: { status: 'RELEASED' },
+      });
+
+      return tx.bloodRequest.findUniqueOrThrow({
+        where: { id },
+        include: { area: true },
+      });
     });
 
     this.logger.logRequestCancelled(id, dto.cancelReason);
