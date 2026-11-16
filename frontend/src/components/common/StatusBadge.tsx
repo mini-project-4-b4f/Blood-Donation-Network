@@ -9,6 +9,8 @@ const STATUS_TONES: Record<Status, string> = {
   ELIGIBLE: 'success', REST_PERIOD: 'warning', UNAVAILABLE: 'neutral', INACTIVE: 'error',
 };
 
-export default function StatusBadge({ status }: { status: Status }) {
+export function StatusBadge({ status }: { status: Status }) {
   return <span className={`ui-status-badge ui-status-badge--${STATUS_TONES[status]}`}>{status.replaceAll('_', ' ')}</span>;
 }
+
+export default StatusBadge;
