@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PledgeStatus, RequestStatus } from '@prisma/client';
+import { PledgeStatus, Prisma, RequestStatus } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { MatchingService } from '../matching/matching.service';
@@ -93,7 +93,7 @@ export class DonationsService {
 
     const donationDate = new Date(`${dto.donationDate}T00:00:00.000Z`);
 
-    const result = await this.prisma.$transaction(async (tx) => {
+    const executeTransaction = () => this.prisma.$transaction(async (tx) => {
       // Recheck the request inside the transaction.
       const currentRequest = await tx.bloodRequest.findUnique({
         where: { id: requestId },
@@ -271,7 +271,21 @@ export class DonationsService {
         fulfilled,
         request: updatedRequest,
       };
-    });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+    let result: Awaited<ReturnType<typeof executeTransaction>>;
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        result = await executeTransaction();
+        break;
+      } catch (error) {
+        const isSerializationConflict =
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2034';
+        if (isSerializationConflict && attempt < 2) continue;
+        throw error;
+      }
+    }
 
     // Log only after the transaction succeeds.
     this.logger.logDonationRecorded(result.donation.id, requestId, dto.donorId);
