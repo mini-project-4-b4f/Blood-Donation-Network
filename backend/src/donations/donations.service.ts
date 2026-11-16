@@ -10,7 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MatchingService } from '../matching/matching.service';
 import { ClockService } from '../common/clock.service';
 import { AppLogger } from '../common/app-logger.service';
-import { toDateOnlyString } from '../common/normalize.util';
+import { toApiBloodType, toDateOnlyString } from '../common/normalize.util';
 
 import { RecordDonationDto } from './dto/record-donation.dto';
 
@@ -99,6 +99,27 @@ export class DonationsService {
         );
       }
 
+      // Re-read donor state in the transaction so eligibility is not based on
+      // a stale profile or last-donation date.
+      const currentDonor = await tx.donorProfile.findUnique({
+        where: { id: dto.donorId },
+        include: { user: true, area: true },
+      });
+
+      if (!currentDonor) {
+        throw new NotFoundException('Donor not found.');
+      }
+
+      const currentEligibility = this.matchingService.checkDonorEligibilityForRequest(
+        currentDonor,
+        currentRequest,
+        now,
+      );
+
+      if (!currentEligibility.eligible) {
+        throw new BadRequestException(currentEligibility.forCoordinator);
+      }
+
       // Atomically reserve one unit without exceeding the required units.
       const requestUpdate = await tx.bloodRequest.updateMany({
         where: {
@@ -125,15 +146,15 @@ export class DonationsService {
       // Prevent a concurrent donation from updating the same donor
       // using an outdated lastDonationDate.
       const latestDonationDate =
-        !donor.lastDonationDate || donationDate > donor.lastDonationDate
+        !currentDonor.lastDonationDate || donationDate > currentDonor.lastDonationDate
           ? donationDate
-          : donor.lastDonationDate;
+          : currentDonor.lastDonationDate;
 
       const donorUpdate = await tx.donorProfile.updateMany({
         where: {
-          id: donor.id,
+          id: currentDonor.id,
           isAvailable: true,
-          lastDonationDate: donor.lastDonationDate,
+          lastDonationDate: currentDonor.lastDonationDate,
         },
         data: {
           lastDonationDate: latestDonationDate,
@@ -154,10 +175,6 @@ export class DonationsService {
           donationDate,
           units: 1,
         },
-      });
-
-      const updatedRequest = await tx.bloodRequest.findUniqueOrThrow({
-        where: { id: requestId },
       });
 
       // Complete this donor's active pledge for this request.
@@ -195,9 +212,37 @@ export class DonationsService {
         });
       }
 
+      const updatedRequest = await tx.bloodRequest.findUniqueOrThrow({
+        where: { id: requestId },
+        include: {
+          area: true,
+          pledges: {
+            orderBy: { createdAt: 'desc' },
+            include: {
+              donor: {
+                include: {
+                  user: { select: { phone: true } },
+                  area: true,
+                },
+              },
+            },
+          },
+          donations: {
+            orderBy: { donationDate: 'desc' },
+            include: {
+              donor: {
+                include: { user: { select: { phone: true } } },
+              },
+              recordedBy: { select: { id: true, phone: true, email: true } },
+            },
+          },
+        },
+      });
+
       return {
         donation,
         fulfilled,
+        request: updatedRequest,
       };
     });
 
@@ -208,6 +253,38 @@ export class DonationsService {
       this.logger.logRequestFulfilled(requestId);
     }
 
-    return result.donation;
+
+    const requestDetails = result.request;
+    return {
+      ...requestDetails,
+      bloodType: toApiBloodType(requestDetails.bloodType),
+      unitsStillNeeded: Math.max(0, requestDetails.unitsRequired - requestDetails.unitsCollected),
+      activePledgesCount: requestDetails.pledges.filter((pledge) => pledge.status === PledgeStatus.PLEDGED).length,
+      pledges: requestDetails.pledges.map((pledge) => ({
+        id: pledge.id,
+        status: pledge.status,
+        createdAt: pledge.createdAt,
+        donor: {
+          id: pledge.donor.id,
+          fullName: pledge.donor.fullName,
+          phone: pledge.donor.user.phone,
+          bloodType: toApiBloodType(pledge.donor.bloodType),
+          area: pledge.donor.area,
+        },
+      })),
+      donations: requestDetails.donations.map((donationItem) => ({
+        id: donationItem.id,
+        donationDate: donationItem.donationDate,
+        units: donationItem.units,
+        createdAt: donationItem.createdAt,
+        donor: {
+          id: donationItem.donor.id,
+          fullName: donationItem.donor.fullName,
+          phone: donationItem.donor.user.phone,
+          bloodType: toApiBloodType(donationItem.donor.bloodType),
+        },
+        recordedBy: donationItem.recordedBy,
+      })),
+    };
   }
 }
