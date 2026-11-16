@@ -7,8 +7,6 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   isLoading?: boolean;
 }
 
-export default Button;
-
 export function buttonClassName({ variant = 'primary', size = 'md', className = '' }: Pick<ButtonProps, 'variant' | 'size' | 'className'> = {}) {
   return `ui-button ui-button--${variant} ui-button--${size} ${className}`.trim();
 }
@@ -20,3 +18,5 @@ export function Button({ variant, size, isLoading = false, disabled, type = 'but
     </button>
   );
 }
+
+export default Button;
