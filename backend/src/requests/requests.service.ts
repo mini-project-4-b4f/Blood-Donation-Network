@@ -102,7 +102,7 @@ export class RequestsService {
       request.urgency,
     );
 
-    return this.mapRequest(request);
+    return this.findRequestById(request.id);
   }
 
   async findAllRequests(filters: RequestFiltersQueryDto) {
@@ -272,7 +272,7 @@ export class RequestsService {
       this.logger.logRequestFulfilled(id);
     }
 
-    return this.mapRequest(updatedRequest.request);
+    return this.findRequestById(id);
   }
 
   async cancelRequest(id: string, dto: CancelRequestDto) {
@@ -314,7 +314,7 @@ export class RequestsService {
 
     this.logger.logRequestCancelled(id, dto.cancelReason);
 
-    return this.mapRequest(request);
+    return this.findRequestById(id);
   }
 
   async getEligibleDonors(id: string) {
