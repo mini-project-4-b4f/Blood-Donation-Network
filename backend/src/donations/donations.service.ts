@@ -204,7 +204,7 @@ export class DonationsService {
         },
       });
 
-      // Complete this donor's active pledge for this request.
+      // Complete this donor's active pledge for this request, if any.
       await tx.pledge.updateMany({
         where: {
           donorId: currentDonor.id,
@@ -219,23 +219,36 @@ export class DonationsService {
       const fulfilled =
         progressRequest.unitsCollected >= progressRequest.unitsRequired;
 
+      // Every completed donation reduces remaining capacity, even when the
+      // donor did not have a pledge. Keep the oldest pledges up to that
+      // capacity and release any excess pledges atomically.
+      const remainingUnits = Math.max(
+        0,
+        progressRequest.unitsRequired - progressRequest.unitsCollected,
+      );
+      const activePledges = await tx.pledge.findMany({
+        where: { requestId, status: PledgeStatus.PLEDGED },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: { id: true },
+      });
+      const excessPledgeIds = activePledges
+        .slice(remainingUnits)
+        .map((pledge) => pledge.id);
+
+      if (excessPledgeIds.length > 0) {
+        await tx.pledge.updateMany({
+          where: {
+            id: { in: excessPledgeIds },
+            status: PledgeStatus.PLEDGED,
+          },
+          data: { status: PledgeStatus.RELEASED },
+        });
+      }
+
       if (fulfilled) {
         await tx.bloodRequest.update({
           where: { id: requestId },
-          data: {
-            status: RequestStatus.FULFILLED,
-          },
-        });
-
-        // Release all remaining active pledges.
-        await tx.pledge.updateMany({
-          where: {
-            requestId,
-            status: PledgeStatus.PLEDGED,
-          },
-          data: {
-            status: PledgeStatus.RELEASED,
-          },
+          data: { status: RequestStatus.FULFILLED },
         });
       }
 
