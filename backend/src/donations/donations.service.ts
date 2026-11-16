@@ -97,6 +97,7 @@ export class DonationsService {
       // Recheck the request inside the transaction.
       const currentRequest = await tx.bloodRequest.findUnique({
         where: { id: requestId },
+        include: { area: true },
       });
 
       if (!currentRequest) {
@@ -298,7 +299,7 @@ export class DonationsService {
       })),
       donations: requestDetails.donations.map((donationItem) => ({
         id: donationItem.id,
-        donationDate: donationItem.donationDate,
+        donationDate: toDateOnlyString(donationItem.donationDate),
         units: donationItem.units,
         createdAt: donationItem.createdAt,
         donor: {
