@@ -8,11 +8,10 @@ import SignInPage from '../pages/SignIn/SignInPage';
 import SignUpPage from '../pages/SignUp/SignUpPage';
 import SosBoardPage from '../pages/SosBoard/SosBoardPage';
 import NotFoundPage from '../pages/NotFound/NotFoundPage';
+import { RequestsPage } from '../pages/Requests/RequestsPage';
+import { RequestDetailsPage } from '../pages/RequestDetails/RequestDetailsPage';
+import { EligibleDonorsPage } from '../pages/EligibleDonors/EligibleDonorsPage';
 import '../components/layout/ProtectedRoute.css';
-
-function Placeholder({ title }: { title: string }) {
-  return <section className="layout-protected"><h1>{title}</h1><p>This workspace is coming soon.</p></section>;
-}
 
 export default function AppRouter() {
   return (
@@ -32,9 +31,9 @@ export default function AppRouter() {
           </Route>
 
           <Route element={<ProtectedRoute role="COORDINATOR" />}>
-            <Route path="/coordinator/requests" element={<Placeholder title="Manage Requests" />} />
-            <Route path="/coordinator/requests/:requestId" element={<Placeholder title="Request Details" />} />
-            <Route path="/coordinator/requests/:requestId/eligible-donors" element={<Placeholder title="Eligible Donors" />} />
+            <Route path="/coordinator/requests" element={<RequestsPage />} />
+            <Route path="/coordinator/requests/:requestId" element={<RequestDetailsPage />} />
+            <Route path="/coordinator/requests/:requestId/eligible-donors" element={<EligibleDonorsPage />} />
           </Route>
 
           <Route path="*" element={<NotFoundPage />} />
