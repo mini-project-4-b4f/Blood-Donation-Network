@@ -103,6 +103,11 @@ const translations: Record<string, { en: string; ar: string }> = {
   'Are you sure you want to deactivate your account?': { en: 'Are you sure you want to deactivate your account?', ar: 'هل أنت متأكد أنك تريد إيقاف حسابك؟' },
   'Confirm Deactivation': { en: 'Confirm Deactivation', ar: 'تأكيد إيقاف الحساب' },
   'Cancel': { en: 'Cancel', ar: 'إلغاء' },
+
+  'See requests I can help with': { en: 'See requests I can help with', ar: 'عرض الطلبات التي يمكنني المساعدة فيها' },
+  'Can you help? Sign in to pledge': { en: 'Can you help? Sign in to pledge', ar: 'هل يمكنك المساعدة؟ سجّل الدخول للتعهد' },
+  'still needed': { en: 'still needed', ar: 'وحدات مطلوبة' },
+  'Posted': { en: 'Posted', ar: 'نُشر في' },
 };
 
 interface LanguageContextValue {
