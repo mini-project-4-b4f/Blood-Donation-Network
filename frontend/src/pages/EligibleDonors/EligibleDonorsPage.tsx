@@ -9,6 +9,7 @@ import { PageContainer } from '../../components/common/PageContainer';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { UrgencyBadge } from '../../components/common/UrgencyBadge';
 import { useRequests } from '../../context/RequestsContext';
+import { useLanguage } from '../../context/LanguageContext';
 import type { CoordinatorRequestDetails } from '../../types/request.types';
 import { formatUnits } from '../../utils/format';
 import { RecordDonationModal } from '../RequestDetails/RecordDonationModal';
@@ -21,6 +22,7 @@ interface EligibleDonorsContentProps {
 }
 
 function EligibleDonorsContent({ requestId }: EligibleDonorsContentProps) {
+  const { direction } = useLanguage();
   const {
     currentRequest, isRequestDetailsLoading, requestDetailsError, loadRequestById,
     eligibleDonorsResult, isEligibleDonorsLoading, eligibleDonorsError, loadEligibleDonors,
@@ -209,7 +211,7 @@ function EligibleDonorsContent({ requestId }: EligibleDonorsContentProps) {
   }
 
   return (
-    <div className="eligible-donors-page" dir="ltr">
+    <div className="eligible-donors-page" dir={direction}>
       <PageContainer title="Eligible Donors" subtitle="Find compatible donors in the request's area.">
         <Link className="eligible-donors-page__back" ref={backLinkRef} to={requestId ? `/coordinator/requests/${encodeURIComponent(requestId)}` : '/coordinator/requests'}>
           <span aria-hidden="true">← </span>{requestId ? 'Back to Request Details' : 'Back to Requests List'}
