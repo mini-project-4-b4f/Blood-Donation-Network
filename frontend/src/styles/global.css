@@ -202,3 +202,27 @@ td {
   white-space: nowrap;
   border: 0;
 }
+
+
+/* Arabic layout direction. Keep phone numbers, email addresses and technical identifiers LTR. */
+html[dir='rtl'] body {
+  text-align: start;
+}
+
+html[dir='rtl'] input,
+html[dir='rtl'] textarea,
+html[dir='rtl'] select {
+  text-align: start;
+}
+
+html[dir='rtl'] .layout-navbar__user-role--coordinator,
+html[dir='rtl'] [dir='ltr'] {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+html[dir='rtl'] .layout-navbar__inner,
+html[dir='rtl'] .layout-navbar__actions,
+html[dir='rtl'] .layout-navbar__nav {
+  direction: rtl;
+}
