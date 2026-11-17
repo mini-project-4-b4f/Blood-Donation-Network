@@ -185,3 +185,23 @@
     padding-inline: 2rem;
   }
 }
+
+.layout-navbar__language {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.25rem;
+  padding: 0.4rem 0.75rem;
+  color: var(--color-on-dark);
+  background: var(--color-dark-surface);
+  border: 1px solid var(--color-dark-hover);
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.layout-navbar__language:hover {
+  color: var(--color-surface);
+  background: var(--color-dark-hover);
+}
