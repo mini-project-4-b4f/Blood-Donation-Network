@@ -10,6 +10,7 @@ import { PageContainer } from '../../components/common/PageContainer';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { UrgencyBadge } from '../../components/common/UrgencyBadge';
 import { useRequests } from '../../context/RequestsContext';
+import { useLanguage } from '../../context/LanguageContext';
 import type { CoordinatorRequestDetails, RequestDonationItem, RequestPledgeItem } from '../../types/request.types';
 import { formatDate, formatDateTime, formatPhone, formatUnits } from '../../utils/format';
 import { UpdateRequestForm } from './UpdateRequestForm';
@@ -136,6 +137,7 @@ function RequestDonationsList({ donations }: RequestDonationsListProps) {
 }
 
 export function RequestDetailsPage() {
+  const { direction } = useLanguage();
   const { requestId } = useParams<{ requestId: string }>();
   const { currentRequest, isRequestDetailsLoading, requestDetailsError, loadRequestById, isMutationLoading, clearMutationError } = useRequests();
   const [loadedRequestId, setLoadedRequestId] = useState<string | null>(null);
@@ -415,7 +417,7 @@ export function RequestDetailsPage() {
   );
 
   return (
-    <div className="request-details-page" dir="ltr">
+    <div className="request-details-page" dir={direction}>
       <nav className="request-details-page__navigation" aria-label="Request navigation">
         <Link className="request-details-page__link" ref={backLinkRef} to="/coordinator/requests">Back to requests</Link>
         <div className="request-details-page__actions">
