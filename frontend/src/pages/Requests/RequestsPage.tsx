@@ -7,6 +7,7 @@ import { Loading } from '../../components/common/Loading';
 import { PageContainer } from '../../components/common/PageContainer';
 import { BLOOD_TYPES, REQUEST_STATUSES, URGENCY_LEVELS } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { useRequests } from '../../context/RequestsContext';
 import type { BloodType } from '../../types/auth.types';
 import type { CoordinatorRequestDetails, RequestFilters, RequestStatus, Urgency } from '../../types/request.types';
@@ -20,6 +21,7 @@ const requestStatuses: readonly RequestStatus[] = REQUEST_STATUSES;
 const urgencyLevels: readonly Urgency[] = URGENCY_LEVELS;
 
 export function RequestsPage() {
+  const { t, direction } = useLanguage();
   const { requests, isRequestsLoading, requestsError, loadRequests, isMutationLoading, clearMutationError } = useRequests();
   const { areas, isAreasLoading, authError, loadAreas } = useAuth();
   const hasRequestedAreas = useRef(false);
@@ -105,11 +107,11 @@ export function RequestsPage() {
   }
 
   return (
-    <div className="requests-page" dir="ltr">
-      <p className="requests-page__eyebrow">Request management</p>
+    <div className="requests-page" dir={direction}>
+      <p className="requests-page__eyebrow">{t('Request management')}</p>
       <PageContainer
-        title="Blood bank coordinator dashboard"
-        subtitle="Track blood requests and find eligible donors."
+        title={t('Blood bank coordinator dashboard')}
+        subtitle={t('Track blood requests and find eligible donors.')}
         actions={(
           <Button type="button" variant="primary" disabled={isMutationLoading} onClick={handleOpenCreate}>
             Create SOS request
