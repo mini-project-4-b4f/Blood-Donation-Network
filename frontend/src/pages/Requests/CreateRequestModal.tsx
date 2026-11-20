@@ -5,6 +5,7 @@ import { ErrorMessage } from '../../components/common/ErrorMessage';
 import { BLOOD_TYPES, MAX_UNITS, MIN_UNITS, URGENCY_LEVELS } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
 import { useRequests } from '../../context/RequestsContext';
+import { useLanguage } from '../../context/LanguageContext';
 import type { Area, BloodType } from '../../types/auth.types';
 import type { CoordinatorRequestDetails, CreateRequestPayload, Urgency } from '../../types/request.types';
 
@@ -27,6 +28,7 @@ const bloodTypes: readonly BloodType[] = BLOOD_TYPES;
 const urgencyLevels: readonly Urgency[] = URGENCY_LEVELS;
 
 export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequestModalProps) {
+  const { t, direction } = useLanguage();
   const { createRequest, isMutationLoading, mutationError, clearMutationError } = useRequests();
   const { areas, isAreasLoading, authError, loadAreas } = useAuth();
   const [patientReference, setPatientReference] = useState('');
@@ -162,7 +164,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
     if (!patientReference.trim()) nextErrors.patientReference = 'Patient reference is required.';
     if (!selectedBloodType) nextErrors.bloodType = 'Select a blood type.';
     if (!Number.isInteger(unitsRequired) || unitsRequired < MIN_UNITS || unitsRequired > MAX_UNITS) {
-      nextErrors.unitsRequired = `Units required must be a whole number between ${MIN_UNITS} and ${MAX_UNITS}.`;
+      nextErrors.unitsRequired = `${t('Units required')} ${t('must be a whole number between')} ${MIN_UNITS} ${t('and')} ${MAX_UNITS}.`;
     }
     if (!areaId) nextErrors.areaId = 'Area is required.';
     if (!selectedUrgency) nextErrors.urgency = 'Select an urgency level.';
@@ -203,7 +205,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
     <dialog
       className="requests-create__dialog"
       ref={dialogRef}
-      dir="ltr"
+      dir={direction}
       aria-modal="true"
       aria-labelledby={fieldId('title')}
       aria-describedby={fieldId('description')}
@@ -212,26 +214,26 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
       onKeyDown={handleKeyDown}
     >
       <header className="requests-create__header">
-        <h2 className="requests-create__title" id={fieldId('title')}>Create SOS request</h2>
+        <h2 className="requests-create__title" id={fieldId('title')}>{t('Create SOS request')}</h2>
         <Button
           className="requests-create__close"
           type="button"
           variant="secondary"
           size="sm"
-          aria-label="Close create request dialog"
+          aria-label={t("Close create request dialog")}
           disabled={isMutationLoading}
           onClick={handleClose}
         >
           <span aria-hidden="true">×</span>
         </Button>
       </header>
-      <p className="requests-create__description" id={fieldId('description')}>Publish a blood request for your hospital or blood bank.</p>
+      <p className="requests-create__description" id={fieldId('description')}>{t('Publish a blood request for your hospital or blood bank.')}</p>
 
       <form className="requests-create__form" ref={formRef} noValidate onSubmit={handleSubmit} aria-busy={isMutationLoading}>
         <fieldset className="requests-create__fields" disabled={isMutationLoading}>
-          <legend className="requests-create__legend">Request information</legend>
+          <legend className="requests-create__legend">{t('Request information')}</legend>
           <div className="requests-create__field">
-            <label className="requests-create__label" htmlFor={fieldId('patientReference')}>Patient reference</label>
+            <label className="requests-create__label" htmlFor={fieldId('patientReference')}>{t('Patient reference')}</label>
             <input
               className="requests-create__input"
               id={fieldId('patientReference')}
@@ -243,7 +245,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
               aria-invalid={Boolean(errors.patientReference)}
               aria-describedby={`${fieldId('patientHelp')}${errors.patientReference ? ` ${fieldId('patientError')}` : ''}`}
             />
-            <p className="requests-create__help" id={fieldId('patientHelp')}>Internal hospital code — never enter a patient's personal name</p>
+            <p className="requests-create__help" id={fieldId('patientHelp')}>{t('Internal hospital code — never enter a patient's personal name')}</p>
             {errors.patientReference && <p className="requests-create__field-error" id={fieldId('patientError')}>{errors.patientReference}</p>}
           </div>
 
@@ -260,13 +262,13 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
                 aria-invalid={Boolean(errors.bloodType)}
                 aria-describedby={errors.bloodType ? fieldId('bloodError') : undefined}
               >
-                <option value="">Choose blood type</option>
+                <option value="">{t('Choose blood type')}</option>
                 {bloodTypes.map((value) => <option key={value} value={value}>{value}</option>)}
               </select>
               {errors.bloodType && <p className="requests-create__field-error" id={fieldId('bloodError')}>{errors.bloodType}</p>}
             </div>
             <div className="requests-create__field">
-              <label className="requests-create__label" htmlFor={fieldId('unitsRequired')}>Units required</label>
+              <label className="requests-create__label" htmlFor={fieldId('unitsRequired')}>{t('Units required')}</label>
               <input
                 className="requests-create__input"
                 id={fieldId('unitsRequired')}
@@ -317,7 +319,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
                 aria-invalid={Boolean(errors.urgency)}
                 aria-describedby={errors.urgency ? fieldId('urgencyError') : undefined}
               >
-                <option value="">Choose urgency</option>
+                <option value="">{t('Choose urgency')}</option>
                 {urgencyLevels.map((value) => <option key={value} value={value}>{value}</option>)}
               </select>
               {errors.urgency && <p className="requests-create__field-error" id={fieldId('urgencyError')}>{errors.urgency}</p>}
@@ -326,11 +328,11 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
 
           {!isAreasLoading && areas.length === 0 && (
             authError ? <ErrorMessage message={authError} onRetry={handleRetryAreas} />
-              : <p className="requests-create__help" role="status">No areas are available. A supported area is required to publish a request.</p>
+              : <p className="requests-create__help" role="status">{t('No areas are available. A supported area is required to publish a request.')}</p>
           )}
 
           <div className="requests-create__field">
-            <label className="requests-create__label" htmlFor={fieldId('hospital')}>Hospital / blood bank name</label>
+            <label className="requests-create__label" htmlFor={fieldId('hospital')}>{t('Hospital / blood bank name')}</label>
             <input
               className="requests-create__input"
               id={fieldId('hospital')}
@@ -344,7 +346,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
             {errors.hospital && <p className="requests-create__field-error" id={fieldId('hospitalError')}>{errors.hospital}</p>}
           </div>
           <div className="requests-create__field">
-            <label className="requests-create__label" htmlFor={fieldId('note')}>Note (optional)</label>
+            <label className="requests-create__label" htmlFor={fieldId('note')}>{t('Note (optional)')}</label>
             <textarea
               className="requests-create__input requests-create__input--note"
               id={fieldId('note')}
@@ -361,8 +363,8 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
             <ErrorMessage message={mutationError} />
           </div>
         )}
-        {Object.values(errors).some(Boolean) && <p className="requests-create__field-error" role="alert">Please check the highlighted fields.</p>}
-        {isMutationLoading && <p className="requests-create__help" role="status">Publishing SOS request...</p>}
+        {Object.values(errors).some(Boolean) && <p className="requests-create__field-error" role="alert">{t('Please check the highlighted fields.')}</p>}
+        {isMutationLoading && <p className="requests-create__help" role="status">{t('Publishing SOS request...')}</p>}
         <Button
           className="requests-create__submit"
           type="submit"
