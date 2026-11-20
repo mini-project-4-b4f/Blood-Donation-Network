@@ -91,15 +91,15 @@ export function RequestsPage() {
 
   function renderRequestResults() {
     if (hasInvalidFilters) {
-      return <ErrorMessage message="Some URL filters are invalid. Choose a supported value or reset filters." onRetry={handleResetFilters} />;
+      return <ErrorMessage message={t("Some URL filters are invalid. Choose a supported value or reset filters.")} onRetry={handleResetFilters} />;
     }
-    if (isRequestsLoading) return <Loading message="Loading blood requests..." />;
+    if (isRequestsLoading) return <Loading message={t("Loading blood requests...")} />;
     if (requestsError) return <ErrorMessage message={requestsError} onRetry={handleRetry} />;
     if (requests.length === 0) {
       return (
         <EmptyState
-          title="No blood requests found"
-          description={hasFilters ? 'Try changing or resetting your filters.' : 'Blood requests will appear here when they are published.'}
+          title={t("No blood requests found")}
+          description={t(hasFilters ? 'Try changing or resetting your filters.' : 'Blood requests will appear here when they are published.')}
         />
       );
     }
@@ -114,13 +114,13 @@ export function RequestsPage() {
         subtitle={t('Track blood requests and find eligible donors.')}
         actions={(
           <Button type="button" variant="primary" disabled={isMutationLoading} onClick={handleOpenCreate}>
-            Create SOS request
+            {t('Create SOS request')}
           </Button>
         )}
       >
         <div className="requests-page__content">
           {successMessage && <p className="requests-page__success" role="status">{successMessage}</p>}
-          <section className="requests-page__filters" aria-label="Filter requests">
+          <section className="requests-page__filters" aria-label={t("Filter requests")}>
             <RequestFiltersBar
               filters={filters}
               areas={areas}
@@ -134,7 +134,7 @@ export function RequestsPage() {
             )}
           </section>
 
-          <section className="requests-page__results" aria-label="Blood requests" aria-busy={isRequestsLoading}>
+          <section className="requests-page__results" aria-label={t("Blood requests")} aria-busy={isRequestsLoading}>
             {renderRequestResults()}
           </section>
         </div>
