@@ -55,7 +55,7 @@ export function RequestsTable({ requests }: RequestsTableProps) {
                       max={request.unitsRequired}
                       aria-label={`${t("Units collected for")} ${request.patientReference}`}
                     />
-                    <span className="requests-table__secondary">{formatUnits(request.unitsStillNeeded)} still needed</span>
+                    <span className="requests-table__secondary">{formatUnits(request.unitsStillNeeded, language)} still needed</span>
                   </div>
                 </td>
                 <td className="requests-table__cell">{request.activePledgesCount}</td>
