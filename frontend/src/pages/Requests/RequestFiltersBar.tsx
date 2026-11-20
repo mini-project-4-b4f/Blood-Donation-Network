@@ -61,7 +61,7 @@ export function RequestFiltersBar({
             onChange={handleStatusChange}
           >
             <option value="">{t('All statuses')}</option>
-            {requestStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
+            {requestStatuses.map((status) => <option key={status} value={status}>{t(status.replaceAll('_', ' '))}</option>)}
           </select>
         </label>
 
@@ -102,7 +102,7 @@ export function RequestFiltersBar({
             onChange={handleUrgencyChange}
           >
             <option value="">{t('All urgencies')}</option>
-            {urgencyLevels.map((urgency) => <option key={urgency} value={urgency}>{urgency}</option>)}
+            {urgencyLevels.map((urgency) => <option key={urgency} value={urgency}>{t(urgency)}</option>)}
           </select>
         </label>
       </fieldset>
