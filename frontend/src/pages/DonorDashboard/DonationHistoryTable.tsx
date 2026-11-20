@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLanguage } from '../../context/LanguageContext';
+import { formatDate } from '../../utils/format';
 import type { DonationHistoryItem } from '../../types/donor.types';
 
 interface DonationHistoryTableProps {
@@ -7,7 +8,7 @@ interface DonationHistoryTableProps {
 }
 
 export const DonationHistoryTable: React.FC<DonationHistoryTableProps> = ({ history }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   return (
     <div className="donor-dashboard-section">
       <h3 className="donor-dashboard-section__title">{t('My Completed Past Donations History')}</h3>
@@ -30,7 +31,7 @@ export const DonationHistoryTable: React.FC<DonationHistoryTableProps> = ({ hist
             ) : (
               history.map((item) => (
                 <tr key={item.id}>
-                  <td>{item.donationDate}</td>
+                  <td>{formatDate(item.donationDate, language)}</td>
                   <td>{item.request.hospital}</td>
                   <td>{item.request.area.name}</td>
                   <td>
