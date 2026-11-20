@@ -334,6 +334,14 @@ const translations: Record<string, { en: string; ar: string }> = {
   'Blood request not found.': { en: 'Blood request not found.', ar: 'طلب التبرع بالدم غير موجود.' },
   'Eligible donors can only be matched for OPEN requests.': { en: 'Eligible donors can only be matched for OPEN requests.', ar: 'يمكن مطابقة المتبرعين للطلبات المفتوحة فقط.' },
   'created successfully.': { en: 'created successfully.', ar: 'تم إنشاؤه بنجاح.' },
+  'Something went wrong. Please try again.': { en: 'Something went wrong. Please try again.', ar: 'حدث خطأ ما. يرجى المحاولة مرة أخرى.' },
+  'An error occurred while loading donor data.': { en: 'An error occurred while loading donor data.', ar: 'حدث خطأ أثناء تحميل بيانات المتبرع.' },
+  'Failed to update profile.': { en: 'Failed to update profile.', ar: 'فشل تحديث الملف الشخصي.' },
+  'Failed to submit pledge.': { en: 'Failed to submit pledge.', ar: 'فشل إرسال التعهد.' },
+  'Failed to withdraw pledge.': { en: 'Failed to withdraw pledge.', ar: 'فشل سحب التعهد.' },
+  'Failed to deactivate account.': { en: 'Failed to deactivate account.', ar: 'فشل إيقاف الحساب.' },
+  'to': { en: 'to', ar: 'إلى' },
+  'Reload the eligible donors for this request.': { en: 'Reload the eligible donors for this request.', ar: 'إعادة تحميل المتبرعين المؤهلين لهذا الطلب.' },
 };
 
 interface LanguageContextValue {
