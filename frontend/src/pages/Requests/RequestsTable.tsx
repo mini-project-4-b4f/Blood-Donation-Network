@@ -36,7 +36,7 @@ export function RequestsTable({ requests }: RequestsTableProps) {
               <tr className="requests-table__row" key={request.id}>
                 <th className="requests-table__cell requests-table__cell--identity" scope="row">
                   <span className="requests-table__hospital">{request.hospital}</span>
-                  <span className="requests-table__secondary">Reference: <bdi>{request.patientReference}</bdi></span>
+                  <span className="requests-table__secondary">{t('Reference:')} <bdi>{request.patientReference}</bdi></span>
                 </th>
                 <td className="requests-table__cell">
                   <div className="requests-table__blood-area">
