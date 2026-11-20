@@ -74,7 +74,7 @@ function RequestPledgesList({ pledges, canRecordDonation, isActionDisabled, onRe
               disabled={isActionDisabled}
               onClick={handleRecordDonation}
             >
-              Record donation
+              {t('Record donation')}
             </Button>
           )}
         </li>
@@ -102,7 +102,7 @@ function RequestDonationsList({ donations }: RequestDonationsListProps) {
               <h3 className="request-details-history__name">{donation.donor.fullName}</h3>
               <BloodTypeBadge bloodType={donation.donor.bloodType} />
             </div>
-            <span className="request-details-history__units">{formatUnits(donation.units)} recorded</span>
+            <span className="request-details-history__units">{formatUnits(donation.units)} {t('recorded')}</span>
           </div>
           <dl className="request-details-history__metadata">
             <div className="request-details-history__detail">
@@ -339,7 +339,7 @@ export function RequestDetailsPage() {
             <div className="request-details-page__blood"><BloodTypeBadge bloodType={request.bloodType} /></div>
             <div className="request-details-page__identity">
               <div className="request-details-page__reference-row">
-                <p className="request-details-page__reference">Reference: <bdi>{request.patientReference}</bdi></p>
+                <p className="request-details-page__reference">{t('Reference:')} <bdi>{request.patientReference}</bdi></p>
                 <UrgencyBadge urgency={request.urgency} />
               </div>
               <h2 className="request-details-page__hospital" id="request-details-hospital">{request.hospital}</h2>
@@ -391,12 +391,12 @@ export function RequestDetailsPage() {
               <dd className="request-details-page__counter-value">{request.unitsStillNeeded}</dd>
             </div>
           </dl>
-          <p className="request-details-page__pledge-count">Active pledges: <strong>{request.activePledgesCount}</strong></p>
+          <p className="request-details-page__pledge-count">{t('Active pledges:')} <strong>{request.activePledgesCount}</strong></p>
         </section>
 
         <div className="request-details-page__history">
           <section className="request-details-history" aria-labelledby="request-details-pledges">
-            <h2 className="request-details-history__title" id="request-details-pledges">Pledges on this request ({request.pledges.length})</h2>
+            <h2 className="request-details-history__title" id="request-details-pledges">{t('Pledges on this request')} ({request.pledges.length})</h2>
             <RequestPledgesList
               pledges={request.pledges}
               canRecordDonation={request.status === 'OPEN'}
@@ -405,7 +405,7 @@ export function RequestDetailsPage() {
             />
           </section>
           <section className="request-details-history" aria-labelledby="request-details-donations">
-            <h2 className="request-details-history__title" id="request-details-donations">Recorded donations ({request.donations.length})</h2>
+            <h2 className="request-details-history__title" id="request-details-donations">{t('Recorded donations')} ({request.donations.length})</h2>
             <RequestDonationsList donations={request.donations} />
           </section>
         </div>
@@ -428,7 +428,7 @@ export function RequestDetailsPage() {
               className="request-details-page__link request-details-page__link--primary"
               to={`/coordinator/requests/${encodeURIComponent(requestId)}/eligible-donors`}
             >
-              Find eligible donors
+              {t('Find eligible donors')}
             </Link>
           )}
           {canShowEligibleDonors && (
@@ -442,7 +442,7 @@ export function RequestDetailsPage() {
               disabled={isMutationLoading || editingRequest?.id === requestId || cancellingRequest?.id === requestId || recordingRequest?.id === requestId}
               onClick={handleOpenUpdate}
             >
-              Update request
+              {t('Update request')}
             </Button>
           )}
           {canShowEligibleDonors && (
@@ -457,7 +457,7 @@ export function RequestDetailsPage() {
               disabled={isMutationLoading || editingRequest?.id === requestId || cancellingRequest?.id === requestId || recordingRequest?.id === requestId}
               onClick={handleOpenCancel}
             >
-              Cancel request
+              {t('Cancel request')}
             </Button>
           )}
           {canShowEligibleDonors && (
@@ -472,7 +472,7 @@ export function RequestDetailsPage() {
               disabled={isMutationLoading || Boolean(editingRequest || cancellingRequest || recordingRequest)}
               onClick={handleOpenRecordDonation}
             >
-              Record donation
+              {t('Record donation')}
             </Button>
           )}
         </div>
