@@ -340,7 +340,6 @@ const translations: Record<string, { en: string; ar: string }> = {
   'Failed to deactivate account.': { en: 'Failed to deactivate account.', ar: 'فشل إيقاف الحساب.' },
   'to': { en: 'to', ar: 'إلى' },
   'Reload the eligible donors for this request.': { en: 'Reload the eligible donors for this request.', ar: 'إعادة تحميل المتبرعين المؤهلين لهذا الطلب.' },
-  'Find compatible donors in the request\'s area.': { en: 'Find compatible donors in the request\'s area.', ar: 'اعثر على متبرعين متوافقين في منطقة الطلب.' },
 };
 
 interface LanguageContextValue {
