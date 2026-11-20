@@ -13,8 +13,8 @@ export const ActivePledgeCard: React.FC<ActivePledgeCardProps> = ({ pledge, onWi
   if (!pledge) {
     return (
       <div className="donor-dashboard-card donor-dashboard-card--empty-pledge">
-        <h3 className="donor-dashboard-card__title"{t('Active Pledge')}</h3>
-        <p className="donor-dashboard-card__text"{t('You do not have any active donation pledges right now. You can select a request from the available list below and pledge to help.')}</p>
+        <h3 className="donor-dashboard-card__title">{t('Active Pledge')}</h3>
+        <p className="donor-dashboard-card__text">{t('You do not have any active donation pledges right now. You can select a request from the available list below and pledge to help.')}</p>
       </div>
     );
   }
@@ -24,7 +24,7 @@ export const ActivePledgeCard: React.FC<ActivePledgeCardProps> = ({ pledge, onWi
   return (
     <div className="donor-dashboard-card donor-dashboard-card--active-pledge">
       <div className="donor-dashboard-card__header">
-        <h3 className="donor-dashboard-card__title"{t('You Have an Active Pledge! 🩸')}</h3>
+        <h3 className="donor-dashboard-card__title">{t('You Have an Active Pledge! 🩸')}</h3>
         <span className={`donor-dashboard-badge donor-dashboard-badge--${request.urgency.toLowerCase()}`}>
           {request.urgency}
         </span>
