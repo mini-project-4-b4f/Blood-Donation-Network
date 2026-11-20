@@ -11,7 +11,7 @@ interface RequestsTableProps {
 }
 
 export function RequestsTable({ requests }: RequestsTableProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   return (
     <div className="requests-table__scroll" role="region" aria-label={t("Blood requests table, scroll horizontally for more columns")} tabIndex={0}>
       <table className="requests-table">
@@ -60,7 +60,7 @@ export function RequestsTable({ requests }: RequestsTableProps) {
                 </td>
                 <td className="requests-table__cell">{request.activePledgesCount}</td>
                 <td className="requests-table__cell">
-                  <time className="requests-table__created" dateTime={request.createdAt}>{formatDateTime(request.createdAt)}</time>
+                  <time className="requests-table__created" dateTime={request.createdAt}>{new Intl.DateTimeFormat(language === 'ar' ? 'ar' : 'en', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(request.createdAt))}</time>
                 </td>
                 <td className="requests-table__cell">
                   <div className="requests-table__actions">
