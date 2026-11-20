@@ -50,7 +50,7 @@ export default function SignUpPage() {
           {authError && <ErrorMessage message={authError} onRetry={areas.length === 0 ? () => void loadAreas() : undefined} />}
           <div className="sign-up-page__grid">
             <div className="sign-up-page__field"><label htmlFor="sign-up-name">{t('Full name')}</label>
-              <input id="sign-up-name" name="fullName" autoComplete="name" required pattern=".*\\S.*" value={fullName} onChange={(event) => { setFullName(event.target.value); clearAuthError(); }} />
+              <input id="sign-up-name" name="fullName" autoComplete="name" required  value={fullName} onChange={(event) => { setFullName(event.target.value); clearAuthError(); }} />
             </div>
             <div className="sign-up-page__field"><label htmlFor="sign-up-phone">{t('Phone number')}</label>
               <input id="sign-up-phone" name="phone" type="tel" autoComplete="tel" required value={phone} onChange={(event) => { setPhone(event.target.value); clearAuthError(); }} />

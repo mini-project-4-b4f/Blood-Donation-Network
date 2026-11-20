@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import type { PublicSosRequest } from '../../types/request.types';
-import { formatDateTime, formatUnits } from '../../utils/format';
+import {  formatUnits } from '../../utils/format';
 import BloodTypeBadge from '../../components/common/BloodTypeBadge';
 import UrgencyBadge from '../../components/common/UrgencyBadge';
 import './SosRequestCard.css';
