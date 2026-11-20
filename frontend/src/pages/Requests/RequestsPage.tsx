@@ -86,7 +86,7 @@ export function RequestsPage() {
   }
 
   function handleCreateSuccess(request: CoordinatorRequestDetails) {
-    setSuccessMessage(`Request ${request.patientReference} created successfully.`);
+    setSuccessMessage(`${t('Request')} ${request.patientReference} ${t('created successfully.')}`);
   }
 
   function renderRequestResults() {
