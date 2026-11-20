@@ -5,6 +5,7 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { ErrorMessage } from '../../components/common/ErrorMessage';
 import { Loading } from '../../components/common/Loading';
 import { useRequests } from '../../context/RequestsContext';
+import { useLanguage } from '../../context/LanguageContext';
 import type { CoordinatorRequestDetails, RecordDonationPayload } from '../../types/request.types';
 import { getTodayString } from '../../utils/date';
 
@@ -139,10 +140,10 @@ export function RecordDonationModal({ request, preselectedDonorId, onClose, onSu
     if (isDisabled || !isDonorListReady || submittingRef.current) return;
     clearMutationError();
     const nextErrors: FormErrors = {};
-    if (!donorId) nextErrors.donorId = 'Donor ID is required.';
-    else if (!hasSelectedDonor) nextErrors.donorId = 'Choose a donor from the current list.';
-    if (!isRealCalendarDate(donationDate)) nextErrors.donationDate = 'Invalid date. Use the format YYYY-MM-DD.';
-    else if (donationDate > getTodayString()) nextErrors.donationDate = 'The donation date cannot be in the future.';
+    if (!donorId) nextErrors.donorId = t('Donor ID is required.');
+    else if (!hasSelectedDonor) nextErrors.donorId = t('Choose a donor from the current list.');
+    if (!isRealCalendarDate(donationDate)) nextErrors.donationDate = t('Invalid date. Use the format YYYY-MM-DD.');
+    else if (donationDate > getTodayString()) nextErrors.donationDate = t('The donation date cannot be in the future.');
     setErrors(nextErrors);
     if (nextErrors.donorId) {
       donorRef.current?.focus();
@@ -169,7 +170,7 @@ export function RecordDonationModal({ request, preselectedDonorId, onClose, onSu
       className="request-details-record__dialog"
       id="request-details-record-dialog"
       ref={dialogRef}
-      dir="ltr"
+      dir={direction}
       aria-modal="true"
       aria-labelledby={`${id}-title`}
       aria-describedby={`${id}-description`}
@@ -179,23 +180,23 @@ export function RecordDonationModal({ request, preselectedDonorId, onClose, onSu
     >
       <form className="request-details-record" noValidate onSubmit={handleSubmit} aria-busy={isMutationLoading}>
         <header className="request-details-record__header">
-          <h2 className="request-details-record__title" id={`${id}-title`}>Record completed donation</h2>
-          <Button className="request-details-record__close" type="button" variant="secondary" size="sm" aria-label="Close record donation dialog" disabled={isMutationLoading} onClick={handleClose}>
+          <h2 className="request-details-record__title" id={`${id}-title`}>{t('Record completed donation')}</h2>
+          <Button className="request-details-record__close" type="button" variant="secondary" size="sm" aria-label={t("Close record donation dialog")} disabled={isMutationLoading} onClick={handleClose}>
             <span aria-hidden="true">×</span>
           </Button>
         </header>
         <p className="request-details-record__description" id={`${id}-description`}>
-          Record one completed unit for request <bdi>{request.patientReference}</bdi>. Eligibility is checked when you save.
+          {t('Record one completed unit for request')} <bdi>{request.patientReference}</bdi>. {t('Eligibility is checked when you save.')}
         </p>
 
         {request.status !== 'OPEN' && (
-          <p className="request-details-record__notice" role="status" ref={terminalRef} tabIndex={-1}>Donations can only be recorded for OPEN requests.</p>
+          <p className="request-details-record__notice" role="status" ref={terminalRef} tabIndex={-1}>{t('Donations can only be recorded for OPEN requests.')}</p>
         )}
 
         <fieldset className="request-details-record__fields" disabled={isDisabled}>
-          <legend className="request-details-record__legend">Completed donation information</legend>
+          <legend className="request-details-record__legend">{t('Completed donation information')}</legend>
           <div className="request-details-record__field">
-            <label className="request-details-record__label" htmlFor={`${id}-donor`}>Donor</label>
+            <label className="request-details-record__label" htmlFor={`${id}-donor`}>{t('Donor')}</label>
             <select
               className="request-details-record__input"
               id={`${id}-donor`}
@@ -208,8 +209,8 @@ export function RecordDonationModal({ request, preselectedDonorId, onClose, onSu
               aria-invalid={Boolean(errors.donorId)}
               aria-describedby={errors.donorId ? `${id}-donor-error` : undefined}
             >
-              <option value="">Choose a donor...</option>
-              {donorId && !hasSelectedDonor && <option value={donorId}>Selected donor (not in current list)</option>}
+              <option value="">{t('Choose a donor...')}</option>
+              {donorId && !hasSelectedDonor && <option value={donorId}>{t('Selected donor (not in current list)')}</option>}
               {allDonors.map((donor) => <option key={donor.id} value={donor.id}>{donor.fullName} ({donor.bloodType} - {donor.area.name})</option>)}
             </select>
             {errors.donorId && <p className="request-details-record__field-error" id={`${id}-donor-error`} role="alert">{errors.donorId}</p>}
@@ -218,11 +219,11 @@ export function RecordDonationModal({ request, preselectedDonorId, onClose, onSu
           {(!hasLoadedDonors || isAllDonorsLoading) && <Loading message="Loading donors..." />}
           {hasLoadedDonors && !isAllDonorsLoading && allDonorsError && <ErrorMessage message={allDonorsError} onRetry={handleRetryDonors} />}
           {hasLoadedDonors && !isAllDonorsLoading && !allDonorsError && allDonors.length === 0 && (
-            <EmptyState title="No donors available" description="No donor profiles are available to select." action={<Button type="button" variant="outline" onClick={handleRetryDonors}>Reload donors</Button>} />
+            <EmptyState title={t("No donors available")} description={t("No donor profiles are available to select.")} action={<Button type="button" variant="outline" onClick={handleRetryDonors}>{t('Reload donors')}</Button>} />
           )}
 
           <div className="request-details-record__field">
-            <label className="request-details-record__label" htmlFor={`${id}-date`}>Donation date</label>
+            <label className="request-details-record__label" htmlFor={`${id}-date`}>{t('Donation date')}</label>
             <input
               className="request-details-record__input"
               id={`${id}-date`}
@@ -241,12 +242,12 @@ export function RecordDonationModal({ request, preselectedDonorId, onClose, onSu
         </fieldset>
 
         {mutationError && <div className="request-details-record__error" ref={errorRef} tabIndex={-1}><ErrorMessage message={mutationError} /></div>}
-        {isMutationLoading && <p className="request-details-record__help" role="status">Saving donation and refreshing request data...</p>}
+        {isMutationLoading && <p className="request-details-record__help" role="status">{t('Saving donation and refreshing request data...')}</p>}
         <div className="request-details-record__actions">
           <Button className="request-details-record__action request-details-record__save" type="submit" variant="primary" isLoading={isMutationLoading} disabled={isDisabled || !isDonorListReady}>
             {isMutationLoading ? 'Saving...' : 'Save donation'}
           </Button>
-          <Button className="request-details-record__action" type="button" variant="secondary" disabled={isMutationLoading} onClick={handleClose}>Go back</Button>
+          <Button className="request-details-record__action" type="button" variant="secondary" disabled={isMutationLoading} onClick={handleClose}>{t('Go back')}</Button>
         </div>
       </form>
     </dialog>
