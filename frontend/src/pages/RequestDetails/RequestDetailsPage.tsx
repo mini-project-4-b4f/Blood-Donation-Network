@@ -33,7 +33,7 @@ function RequestPledgesList({ pledges, canRecordDonation, isActionDisabled, onRe
   }
 
   if (pledges.length === 0) {
-    return <EmptyState title="No pledges yet" description="Pledges for this request will appear here." />;
+    return <EmptyState title={t("No pledges yet")} description={t("Pledges for this request will appear here.")} />;
   }
 
   return (
@@ -88,8 +88,9 @@ interface RequestDonationsListProps {
 }
 
 function RequestDonationsList({ donations }: RequestDonationsListProps) {
+  const { t } = useLanguage();
   if (donations.length === 0) {
-    return <EmptyState title="No donations recorded" description="Completed donations for this request will appear here." />;
+    return <EmptyState title={t("No donations recorded")} description={t("Completed donations for this request will appear here.")} />;
   }
 
   return (
@@ -105,28 +106,28 @@ function RequestDonationsList({ donations }: RequestDonationsListProps) {
           </div>
           <dl className="request-details-history__metadata">
             <div className="request-details-history__detail">
-              <dt className="request-details-history__label">Donor phone</dt>
+              <dt className="request-details-history__label">{t('Donor phone')}</dt>
               <dd className="request-details-history__value"><bdi>{formatPhone(donation.donor.phone)}</bdi></dd>
             </div>
             <div className="request-details-history__detail">
-              <dt className="request-details-history__label">Donation date</dt>
+              <dt className="request-details-history__label">{t('Donation date')}</dt>
               <dd className="request-details-history__value">
                 <time dateTime={donation.donationDate}>{formatDate(donation.donationDate)}</time>
               </dd>
             </div>
             <div className="request-details-history__detail">
-              <dt className="request-details-history__label">Recorded at</dt>
+              <dt className="request-details-history__label">{t('Recorded at')}</dt>
               <dd className="request-details-history__value">
                 <time dateTime={donation.createdAt}>{formatDateTime(donation.createdAt)}</time>
               </dd>
             </div>
             <div className="request-details-history__detail">
-              <dt className="request-details-history__label">Recorded by coordinator</dt>
+              <dt className="request-details-history__label">{t('Recorded by coordinator')}</dt>
               <dd className="request-details-history__value"><bdi>{formatPhone(donation.recordedBy.phone)}</bdi></dd>
             </div>
             {donation.recordedBy.email && (
               <div className="request-details-history__detail">
-                <dt className="request-details-history__label">Coordinator email</dt>
+                <dt className="request-details-history__label">{t('Coordinator email')}</dt>
                 <dd className="request-details-history__value"><bdi>{donation.recordedBy.email}</bdi></dd>
               </div>
             )}
@@ -301,10 +302,10 @@ export function RequestDetailsPage() {
 
   function renderRequestDetails() {
     if (!requestId) {
-      return <EmptyState title="Request not found" description="No request ID was provided. Choose a request from the requests list." />;
+      return <EmptyState title={t("Request not found")} description={t("No request ID was provided. Choose a request from the requests list.")} />;
     }
     if (loadedRequestId !== requestId || isRequestDetailsLoading) {
-      return <Loading message="Loading request details..." />;
+      return <Loading message={t("Loading request details...")} />;
     }
     if (requestDetailsError === 'Blood request not found.') {
       return <EmptyState title="Request not found" description={requestDetailsError} />;
@@ -315,9 +316,9 @@ export function RequestDetailsPage() {
     if (!currentRequest || currentRequest.id !== requestId) {
       return (
         <EmptyState
-          title="No request details available"
-          description="Try loading the request again or return to the requests list."
-          action={<Button type="button" variant="outline" onClick={handleRetry}>Retry</Button>}
+          title={t("No request details available")}
+          description={t("Try loading the request again or return to the requests list.")}
+          action={<Button type="button" variant="outline" onClick={handleRetry}>{t('Retry')}</Button>}
         />
       );
     }
@@ -328,8 +329,8 @@ export function RequestDetailsPage() {
       <div className="request-details-page__content">
         {request.status !== 'OPEN' && (
           <p className="request-details-page__terminal" role="status">
-            This request is {request.status === 'FULFILLED' ? 'fulfilled' : 'cancelled'} and read-only.
-            {' '}It cannot be updated or reopened, and no further pledges, donor matching or donations are allowed.
+            {t('This request is')} {t(request.status === 'FULFILLED' ? 'fulfilled' : 'cancelled')} {t('and read-only.')}
+            {' '}{t('It cannot be updated or reopened, and no further pledges, donor matching or donations are allowed.')}
           </p>
         )}
 
