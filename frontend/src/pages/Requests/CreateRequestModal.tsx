@@ -302,7 +302,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
                 aria-invalid={Boolean(errors.areaId)}
                 aria-describedby={errors.areaId ? fieldId('areaError') : undefined}
               >
-                <option value="">{isAreasLoading ? 'Loading areas...' : 'Choose area'}</option>
+                <option value="">{isAreasLoading ? t('Loading areas...') : t('Choose area')}</option>
                 {areas.map((area: Area) => <option key={area.id} value={area.id}>{area.name}</option>)}
               </select>
               {errors.areaId && <p className="requests-create__field-error" id={fieldId('areaError')}>{errors.areaId}</p>}
