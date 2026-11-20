@@ -44,14 +44,14 @@ export const DonorProfilePage: React.FC = () => {
   if (!profile) {
     return isLoading
       ? <div className="donor-profile-loading" role="status">{t('Loading profile data...')}</div>
-      : <div className="donor-profile-alert donor-profile-alert--error" role="alert">{error ?? t('Failed to load profile data.')}</div>;
+      : <div className="donor-profile-alert donor-profile-alert--error" role="alert">{error ? t(error) : t('Failed to load profile data.')}</div>;
   }
 
   return (
     <div className="donor-profile">
       <h1 className="donor-profile__title">{t('Donor Profile')}</h1>
       {successMsg && <div className="donor-profile-alert donor-profile-alert--success" role="alert">{successMsg}</div>}
-      {actionError && <div className="donor-profile-alert donor-profile-alert--error" role="alert">{actionError}</div>}
+      {actionError && <div className="donor-profile-alert donor-profile-alert--error" role="alert">{t(actionError)}</div>}
       <form onSubmit={handleSubmit} className="donor-profile-form">
         <div className="donor-profile-form__group">
           <label className="donor-profile-form__label">{t('Full Name (Read-only)')}</label>
