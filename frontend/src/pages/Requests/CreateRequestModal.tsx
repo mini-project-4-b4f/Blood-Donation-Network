@@ -161,14 +161,14 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
     const selectedUrgency = urgencyLevels.find((value) => value === urgency);
     const unitsRequired = Number(unitsInput);
     const nextErrors: FormErrors = {};
-    if (!patientReference.trim()) nextErrors.patientReference = 'Patient reference is required.';
-    if (!selectedBloodType) nextErrors.bloodType = 'Select a blood type.';
+    if (!patientReference.trim()) nextErrors.patientReference = t('Patient reference is required.');
+    if (!selectedBloodType) nextErrors.bloodType = t('Select a blood type.');
     if (!Number.isInteger(unitsRequired) || unitsRequired < MIN_UNITS || unitsRequired > MAX_UNITS) {
       nextErrors.unitsRequired = `${t('Units required')} ${t('must be a whole number between')} ${MIN_UNITS} ${t('and')} ${MAX_UNITS}.`;
     }
-    if (!areaId) nextErrors.areaId = 'Area is required.';
-    if (!selectedUrgency) nextErrors.urgency = 'Select an urgency level.';
-    if (!hospital.trim()) nextErrors.hospital = 'Hospital or blood-bank name is required.';
+    if (!areaId) nextErrors.areaId = t('Area is required.');
+    if (!selectedUrgency) nextErrors.urgency = t('Select an urgency level.');
+    if (!hospital.trim()) nextErrors.hospital = t('Hospital or blood-bank name is required.');
     setErrors(nextErrors);
 
     if (Object.keys(nextErrors).length > 0 || !selectedBloodType || !selectedUrgency) {
