@@ -22,7 +22,7 @@ interface EligibleDonorsContentProps {
 }
 
 function EligibleDonorsContent({ requestId }: EligibleDonorsContentProps) {
-  const { t, direction } = useLanguage();
+  const { t, direction, language } = useLanguage();
   const {
     currentRequest, isRequestDetailsLoading, requestDetailsError, loadRequestById,
     eligibleDonorsResult, isEligibleDonorsLoading, eligibleDonorsError, loadEligibleDonors,
