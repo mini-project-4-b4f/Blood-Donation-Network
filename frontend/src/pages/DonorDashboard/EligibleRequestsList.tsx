@@ -15,6 +15,7 @@ export const EligibleRequestsList: React.FC<EligibleRequestsListProps> = ({
   onPledge,
   isLoading,
 }) => {
+  const { t } = useLanguage();
   return (
     <div className="donor-dashboard-section">
       <div className="donor-dashboard-section__header-row">
