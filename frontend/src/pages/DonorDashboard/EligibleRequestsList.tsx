@@ -18,8 +18,8 @@ export const EligibleRequestsList: React.FC<EligibleRequestsListProps> = ({
   return (
     <div className="donor-dashboard-section">
       <div className="donor-dashboard-section__header-row">
-        <h3 className="donor-dashboard-section__title"{t('Emergency Requests I Can Help With')}</h3>
-        <span className="donor-dashboard-section__subtitle-tag"{t('Blood types compatible with you')}</span>
+        <h3 className="donor-dashboard-section__title">{t('Emergency Requests I Can Help With')}</h3>
+        <span className="donor-dashboard-section__subtitle-tag">{t('Blood types compatible with you')}</span>
       </div>
 
       {requests.length === 0 ? (
