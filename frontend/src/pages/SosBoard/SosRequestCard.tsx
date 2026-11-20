@@ -17,7 +17,7 @@ export default function SosRequestCard({ request }: { request: PublicSosRequest 
       <div className="sos-board-card__badges"><BloodTypeBadge bloodType={request.bloodType} /><UrgencyBadge urgency={request.urgency} /></div>
       <h3 className="sos-board-card__hospital">{request.hospital}</h3>
       <p className="sos-board-card__area"><span aria-hidden="true">◎</span> {request.area.name}</p>
-      <p className="sos-board-card__units"><strong>{formatUnits(request.unitsStillNeeded)}</strong> {t('still needed')}</p>
+      <p className="sos-board-card__units"><strong>{formatUnits(request.unitsStillNeeded, language)}</strong> {t('still needed')}</p>
       <time className="sos-board-card__time" dateTime={request.createdAt}>{t('Posted')} {new Intl.DateTimeFormat(language === 'ar' ? 'ar' : 'en', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' }).format(new Date(request.createdAt))} UTC</time>
       <Link className="sos-board-card__action" to={destination}>{action} <span aria-hidden="true">→</span></Link>
     </article>
