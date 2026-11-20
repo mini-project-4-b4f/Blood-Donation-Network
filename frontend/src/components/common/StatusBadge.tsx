@@ -1,3 +1,4 @@
+import { useLanguage } from '../../context/LanguageContext';
 import type { EligibilityStatus, PledgeStatus } from '../../types/donor.types';
 import type { RequestStatus } from '../../types/request.types';
 import './StatusBadge.css';
@@ -10,7 +11,8 @@ const STATUS_TONES: Record<Status, string> = {
 };
 
 export function StatusBadge({ status }: { status: Status }) {
-  return <span className={`ui-status-badge ui-status-badge--${STATUS_TONES[status]}`}>{status.replaceAll('_', ' ')}</span>;
+  const { t } = useLanguage();
+  return <span className={`ui-status-badge ui-status-badge--${STATUS_TONES[status]}`}>{t(status.replaceAll('_', ' '))}</span>;
 }
 
 export default StatusBadge;

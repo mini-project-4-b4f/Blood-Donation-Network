@@ -9,6 +9,7 @@ import { PageContainer } from '../../components/common/PageContainer';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { UrgencyBadge } from '../../components/common/UrgencyBadge';
 import { useRequests } from '../../context/RequestsContext';
+import { useLanguage } from '../../context/LanguageContext';
 import type { CoordinatorRequestDetails } from '../../types/request.types';
 import { formatUnits } from '../../utils/format';
 import { RecordDonationModal } from '../RequestDetails/RecordDonationModal';
@@ -21,6 +22,7 @@ interface EligibleDonorsContentProps {
 }
 
 function EligibleDonorsContent({ requestId }: EligibleDonorsContentProps) {
+  const { t, direction, language } = useLanguage();
   const {
     currentRequest, isRequestDetailsLoading, requestDetailsError, loadRequestById,
     eligibleDonorsResult, isEligibleDonorsLoading, eligibleDonorsError, loadEligibleDonors,
@@ -106,20 +108,20 @@ function EligibleDonorsContent({ requestId }: EligibleDonorsContentProps) {
   }
 
   function renderDonors() {
-    if (!hasLoadedDonors || isEligibleDonorsLoading) return <Loading message="Loading eligible donors..." />;
-    if (eligibleDonorsError === 'Blood request not found.') return <EmptyState title="Request not found" description={eligibleDonorsError} />;
+    if (!hasLoadedDonors || isEligibleDonorsLoading) return <Loading message={t("Loading eligible donors...")} />;
+    if (eligibleDonorsError === 'Blood request not found.') return <EmptyState title={t("Request not found")} description={eligibleDonorsError} />;
     if (eligibleDonorsError) {
       return (
         <div className="eligible-donors-page__error">
           <ErrorMessage message={eligibleDonorsError} onRetry={handleRetryDonors} />
           {eligibleDonorsError === 'Eligible donors can only be matched for OPEN requests.' && (
-            <Button type="button" variant="outline" onClick={handleRetryRequest}>Refresh request status</Button>
+            <Button type="button" variant="outline" onClick={handleRetryRequest}>{t('Refresh request status')}</Button>
           )}
         </div>
       );
     }
     if (!eligibleDonorsResult || eligibleDonorsResult.requestId !== requestId) {
-      return <EmptyState title="Matching data unavailable" description="Reload the eligible donors for this request." action={<Button type="button" variant="outline" onClick={handleRetryDonors}>Reload eligible donors</Button>} />;
+      return <EmptyState title={t("Matching data unavailable")} description={t("Reload the eligible donors for this request.")} action={<Button type="button" variant="outline" onClick={handleRetryDonors}>{t('Reload eligible donors')}</Button>} />;
     }
 
     return (
@@ -127,24 +129,24 @@ function EligibleDonorsContent({ requestId }: EligibleDonorsContentProps) {
         <ExcludedDonorsSummary excludedSummary={eligibleDonorsResult.excludedSummary} />
         <section className="eligible-donors-page__results" aria-labelledby="eligible-donors-results-title">
           <header className="eligible-donors-page__results-header">
-            <h2 className="eligible-donors-page__results-title" id="eligible-donors-results-title">Ranked eligible donors for this request ({eligibleDonorsResult.eligibleDonors.length})</h2>
-            <p className="eligible-donors-page__privacy">Personal data is hidden from the public.</p>
+            <h2 className="eligible-donors-page__results-title" id="eligible-donors-results-title">{t("Ranked eligible donors for this request")} ({eligibleDonorsResult.eligibleDonors.length})</h2>
+            <p className="eligible-donors-page__privacy">{t('Personal data is hidden from the public.')}</p>
           </header>
           {eligibleDonorsResult.eligibleDonors.length === 0 ? (
-            <div className="eligible-donors-page__empty"><EmptyState title="No eligible donors" description="No eligible donors are currently available in this area. The exclusion counts above explain why compatible donors were excluded." /></div>
+            <div className="eligible-donors-page__empty"><EmptyState title={t("No eligible donors")} description={t("No eligible donors are currently available in this area. The exclusion counts above explain why compatible donors were excluded.")} /></div>
           ) : (
-            <div className="eligible-donors-page__table-scroll" role="region" aria-label="Ranked eligible donors" tabIndex={0}>
+            <div className="eligible-donors-page__table-scroll" role="region" aria-label={t("Ranked eligible donors")} tabIndex={0}>
               <table className="eligible-donors-page__table">
-                <caption className="eligible-donors-page__caption">Eligible donors in the order returned by the server</caption>
+                <caption className="eligible-donors-page__caption">{t("Eligible donors in the order returned by the server")}</caption>
                 <thead>
                   <tr>
-                    <th className="eligible-donors-page__column" scope="col">Rank</th>
-                    <th className="eligible-donors-page__column" scope="col">Donor name / phone</th>
-                    <th className="eligible-donors-page__column" scope="col">Blood type / match</th>
-                    <th className="eligible-donors-page__column" scope="col">Area</th>
-                    <th className="eligible-donors-page__column" scope="col">Last donation</th>
-                    <th className="eligible-donors-page__column" scope="col">Pledge on this request</th>
-                    <th className="eligible-donors-page__column" scope="col">Quick action</th>
+                    <th className="eligible-donors-page__column" scope="col">{t('Rank')}</th>
+                    <th className="eligible-donors-page__column" scope="col">{t('Donor name / phone')}</th>
+                    <th className="eligible-donors-page__column" scope="col">{t('Blood type / match')}</th>
+                    <th className="eligible-donors-page__column" scope="col">{t('Area')}</th>
+                    <th className="eligible-donors-page__column" scope="col">{t('Last donation')}</th>
+                    <th className="eligible-donors-page__column" scope="col">{t('Pledge on this request')}</th>
+                    <th className="eligible-donors-page__column" scope="col">{t('Quick action')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -161,18 +163,18 @@ function EligibleDonorsContent({ requestId }: EligibleDonorsContentProps) {
   }
 
   function renderRequest() {
-    if (!requestId) return <EmptyState title="Request not found" description="No request ID was provided. Choose a request from the requests list." />;
-    if (!hasLoadedRequest || isRequestDetailsLoading) return <Loading message="Loading request details..." />;
-    if (requestDetailsError === 'Blood request not found.') return <EmptyState title="Request not found" description={requestDetailsError} />;
+    if (!requestId) return <EmptyState title={t("Request not found")} description={t("No request ID was provided. Choose a request from the requests list.")} />;
+    if (!hasLoadedRequest || isRequestDetailsLoading) return <Loading message={t("Loading request details...")} />;
+    if (requestDetailsError === 'Blood request not found.') return <EmptyState title={t("Request not found")} description={requestDetailsError} />;
     if (requestDetailsError) return <ErrorMessage message={requestDetailsError} onRetry={handleRetryRequest} />;
-    if (!currentRequest || currentRequest.id !== requestId) return <EmptyState title="Request details unavailable" action={<Button type="button" variant="outline" onClick={handleRetryRequest}>Reload request details</Button>} />;
+    if (!currentRequest || currentRequest.id !== requestId) return <EmptyState title={t("Request details unavailable")} action={<Button type="button" variant="outline" onClick={handleRetryRequest}>{t('Reload request details')}</Button>} />;
 
     const matchingResult = eligibleDonorsResult?.requestId === requestId && !isEligibleDonorsLoading && !eligibleDonorsError ? eligibleDonorsResult : null;
     return (
       <>
-        <section className="eligible-donors-page__summary" aria-label="Request summary">
+        <section className="eligible-donors-page__summary" aria-label={t("Request summary")}>
           <div className="eligible-donors-page__request-heading">
-            <h2 className="eligible-donors-page__reference">Request <bdi>{currentRequest.patientReference}</bdi></h2>
+            <h2 className="eligible-donors-page__reference">{t("Request")} <bdi>{currentRequest.patientReference}</bdi></h2>
             <div className="eligible-donors-page__badges">
               <StatusBadge status={currentRequest.status} />
               <UrgencyBadge urgency={currentRequest.urgency} />
@@ -180,28 +182,28 @@ function EligibleDonorsContent({ requestId }: EligibleDonorsContentProps) {
           </div>
           <dl className="eligible-donors-page__metadata">
             <div className="eligible-donors-page__detail">
-              <dt className="eligible-donors-page__label">Blood type needed</dt>
+              <dt className="eligible-donors-page__label">{t('Blood type needed')}</dt>
               <dd className="eligible-donors-page__value">
                 <BloodTypeBadge bloodType={matchingResult?.bloodTypeNeeded ?? currentRequest.bloodType} />
               </dd>
             </div>
             <div className="eligible-donors-page__detail">
-              <dt className="eligible-donors-page__label">Area</dt>
+              <dt className="eligible-donors-page__label">{t('Area')}</dt>
               <dd className="eligible-donors-page__value">{matchingResult?.area.name ?? currentRequest.area.name}</dd>
             </div>
             <div className="eligible-donors-page__detail">
-              <dt className="eligible-donors-page__label">Units still needed</dt>
-              <dd className="eligible-donors-page__value eligible-donors-page__value--needed">{formatUnits(currentRequest.unitsStillNeeded)}</dd>
+              <dt className="eligible-donors-page__label">{t('Units still needed')}</dt>
+              <dd className="eligible-donors-page__value eligible-donors-page__value--needed">{formatUnits(currentRequest.unitsStillNeeded, language)}</dd>
             </div>
             <div className="eligible-donors-page__detail">
-              <dt className="eligible-donors-page__label">Active pledges</dt>
+              <dt className="eligible-donors-page__label">{t('Active pledges')}</dt>
               <dd className="eligible-donors-page__value">{currentRequest.activePledgesCount}</dd>
             </div>
           </dl>
         </section>
         {currentRequest.status !== 'OPEN' ? (
           <div className="eligible-donors-page__closed" role="status">
-            <EmptyState title="This request is closed" description="Eligible donors can only be matched for OPEN requests. Donation recording is unavailable. Request history remains available in Request Details." />
+            <EmptyState title={t("This request is closed")} description={t("Eligible donors can only be matched for OPEN requests. Donation recording is unavailable. Request history remains available in Request Details.")} />
           </div>
         ) : renderDonors()}
       </>
@@ -209,12 +211,12 @@ function EligibleDonorsContent({ requestId }: EligibleDonorsContentProps) {
   }
 
   return (
-    <div className="eligible-donors-page" dir="ltr">
-      <PageContainer title="Eligible Donors" subtitle="Find compatible donors in the request's area.">
+    <div className="eligible-donors-page" dir={direction}>
+      <PageContainer title={t("Eligible Donors")} subtitle={t("Find compatible donors in the request's area.")}>
         <Link className="eligible-donors-page__back" ref={backLinkRef} to={requestId ? `/coordinator/requests/${encodeURIComponent(requestId)}` : '/coordinator/requests'}>
           <span aria-hidden="true">← </span>{requestId ? 'Back to Request Details' : 'Back to Requests List'}
         </Link>
-        {hasRecordedDonation && <p className="eligible-donors-page__success" role="status" ref={successRef} tabIndex={-1}>Donation recorded successfully.</p>}
+        {hasRecordedDonation && <p className="eligible-donors-page__success" role="status" ref={successRef} tabIndex={-1}>{t('Donation recorded successfully.')}</p>}
         <div className="eligible-donors-page__content">{renderRequest()}</div>
         {recordingRequest && (
           <div className="eligible-donors-page__donation">

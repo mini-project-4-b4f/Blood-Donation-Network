@@ -1,5 +1,6 @@
 import type { ChangeEvent, SubmitEvent } from 'react';
 import { Button } from '../../components/common/Button';
+import { useLanguage } from '../../context/LanguageContext';
 import { BLOOD_TYPES, REQUEST_STATUSES, URGENCY_LEVELS } from '../../constants';
 import type { Area, BloodType } from '../../types/auth.types';
 import type { RequestFilters, RequestStatus, Urgency } from '../../types/request.types';
@@ -20,6 +21,7 @@ const urgencyLevels: readonly Urgency[] = URGENCY_LEVELS;
 export function RequestFiltersBar({
   filters, areas, isAreasLoading, hasFilters, onChange, onReset,
 }: RequestFiltersBarProps) {
+  const { t } = useLanguage();
   const hasSelectedArea = areas.some((area) => area.id === filters.areaId);
 
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
@@ -46,38 +48,38 @@ export function RequestFiltersBar({
   }
 
   return (
-    <form className="requests-filters" aria-label="Request filters" onSubmit={handleSubmit}>
+    <form className="requests-filters" aria-label={t("Request filters")} onSubmit={handleSubmit}>
       <fieldset className="requests-filters__fields">
-        <legend className="requests-filters__legend">Filter blood requests</legend>
+        <legend className="requests-filters__legend">{t('Filter blood requests')}</legend>
 
         <label className="requests-filters__field" htmlFor="requests-status">
-          <span className="requests-filters__label">Status</span>
+          <span className="requests-filters__label">{t('Status')}</span>
           <select
             className="requests-filters__select"
             id="requests-status"
             value={filters.status ?? ''}
             onChange={handleStatusChange}
           >
-            <option value="">All statuses</option>
-            {requestStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
+            <option value="">{t('All statuses')}</option>
+            {requestStatuses.map((status) => <option key={status} value={status}>{t(status.replaceAll('_', ' '))}</option>)}
           </select>
         </label>
 
         <label className="requests-filters__field" htmlFor="requests-blood-type">
-          <span className="requests-filters__label">Blood type</span>
+          <span className="requests-filters__label">{t('Blood type')}</span>
           <select
             className="requests-filters__select"
             id="requests-blood-type"
             value={filters.bloodType ?? ''}
             onChange={handleBloodTypeChange}
           >
-            <option value="">All blood types</option>
+            <option value="">{t('All blood types')}</option>
             {bloodTypes.map((bloodType) => <option key={bloodType} value={bloodType}>{bloodType}</option>)}
           </select>
         </label>
 
         <label className="requests-filters__field" htmlFor="requests-area">
-          <span className="requests-filters__label">Area</span>
+          <span className="requests-filters__label">{t('Area')}</span>
           <select
             className="requests-filters__select"
             id="requests-area"
@@ -85,29 +87,29 @@ export function RequestFiltersBar({
             disabled={isAreasLoading || areas.length === 0}
             onChange={handleAreaChange}
           >
-            <option value="">All areas</option>
-            {filters.areaId && !hasSelectedArea && <option value={filters.areaId}>Selected area</option>}
+            <option value="">{t('All areas')}</option>
+            {filters.areaId && !hasSelectedArea && <option value={filters.areaId}>{t('Selected area')}</option>}
             {areas.map((area) => <option key={area.id} value={area.id}>{area.name}</option>)}
           </select>
         </label>
 
         <label className="requests-filters__field" htmlFor="requests-urgency">
-          <span className="requests-filters__label">Urgency</span>
+          <span className="requests-filters__label">{t('Urgency')}</span>
           <select
             className="requests-filters__select"
             id="requests-urgency"
             value={filters.urgency ?? ''}
             onChange={handleUrgencyChange}
           >
-            <option value="">All urgencies</option>
-            {urgencyLevels.map((urgency) => <option key={urgency} value={urgency}>{urgency}</option>)}
+            <option value="">{t('All urgencies')}</option>
+            {urgencyLevels.map((urgency) => <option key={urgency} value={urgency}>{t(urgency)}</option>)}
           </select>
         </label>
       </fieldset>
 
       <div className="requests-filters__footer">
         <p className="requests-filters__hint" role="status">
-          {isAreasLoading ? 'Loading areas...' : areas.length === 0 ? 'No areas are available. Other filters remain usable.' : 'Filters update the requests list automatically.'}
+          {isAreasLoading ? t('Loading areas...') : areas.length === 0 ? t('No areas are available. Other filters remain usable.') : t('Filters update the requests list automatically.')}
         </p>
         <Button type="button" variant="outline" size="sm" onClick={onReset} disabled={!hasFilters}>
           Reset filters

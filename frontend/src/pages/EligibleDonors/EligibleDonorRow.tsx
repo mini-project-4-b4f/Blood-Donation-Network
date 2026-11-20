@@ -1,3 +1,4 @@
+import { useLanguage } from '../../context/LanguageContext';
 import { BloodTypeBadge } from '../../components/common/BloodTypeBadge';
 import { Button } from '../../components/common/Button';
 import type { RankedEligibleDonor } from '../../types/request.types';
@@ -10,6 +11,7 @@ interface EligibleDonorRowProps {
 }
 
 export function EligibleDonorRow({ donor, isActionDisabled, onRecordDonation }: EligibleDonorRowProps) {
+  const { t, language } = useLanguage();
   function handleRecordDonation() {
     onRecordDonation(donor.id);
   }
@@ -25,20 +27,20 @@ export function EligibleDonorRow({ donor, isActionDisabled, onRecordDonation }: 
         <div className="eligible-donors-row__badges">
           <BloodTypeBadge bloodType={donor.bloodType} isExactMatch={donor.isExactBloodMatch} />
           <span className={`eligible-donors-row__match${donor.isExactBloodMatch ? ' eligible-donors-row__match--exact' : ''}`}>
-            {donor.isExactBloodMatch ? 'Exact Match' : 'Compatible'}
+            {donor.isExactBloodMatch ? t('Exact Match') : t('Compatible')}
           </span>
         </div>
       </td>
       <td className="eligible-donors-row__cell">{donor.area.name}</td>
       <td className="eligible-donors-row__cell">
         {donor.lastDonationDate ? (
-          <time dateTime={donor.lastDonationDate}>{formatDate(donor.lastDonationDate)}</time>
-        ) : <span className="eligible-donors-row__never">Never donated</span>}
+          <time dateTime={donor.lastDonationDate}>{formatDate(donor.lastDonationDate, language)}</time>
+        ) : <span className="eligible-donors-row__never">{t('Never donated')}</span>}
       </td>
       <td className="eligible-donors-row__cell">
         {donor.hasActivePledgeForThisRequest ? (
-          <span className="eligible-donors-row__pledge">Active Pledge</span>
-        ) : <span className="eligible-donors-row__no-pledge">No active pledge</span>}
+          <span className="eligible-donors-row__pledge">{t('Active Pledge')}</span>
+        ) : <span className="eligible-donors-row__no-pledge">{t('No active pledge')}</span>}
       </td>
       <td className="eligible-donors-row__cell">
         <Button
@@ -46,7 +48,7 @@ export function EligibleDonorRow({ donor, isActionDisabled, onRecordDonation }: 
           type="button"
           variant="primary"
           size="sm"
-          aria-label={`Record donation for ${donor.fullName}`}
+          aria-label={`${t("Record donation for")} ${donor.fullName}`}
           aria-haspopup="dialog"
           disabled={isActionDisabled}
           onClick={handleRecordDonation}

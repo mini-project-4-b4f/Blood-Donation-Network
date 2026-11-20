@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLanguage } from '../../context/LanguageContext';
 import type { EligibleOpenRequest } from '../../types/donor.types';
 
 interface EligibleRequestsListProps {
@@ -14,16 +15,17 @@ export const EligibleRequestsList: React.FC<EligibleRequestsListProps> = ({
   onPledge,
   isLoading,
 }) => {
+  const { t } = useLanguage();
   return (
     <div className="donor-dashboard-section">
       <div className="donor-dashboard-section__header-row">
-        <h3 className="donor-dashboard-section__title"> Emergency Requests I Can Help With</h3>
-        <span className="donor-dashboard-section__subtitle-tag">Blood types compatible with you</span>
+        <h3 className="donor-dashboard-section__title">{t('Emergency Requests I Can Help With')}</h3>
+        <span className="donor-dashboard-section__subtitle-tag">{t('Blood types compatible with you')}</span>
       </div>
 
       {requests.length === 0 ? (
         <div className="donor-dashboard-card donor-dashboard-card--empty">
-          <p>No open blood donation requests matching your area right now.</p>
+          <p>{t('No open blood donation requests matching your area right now.')}</p>
         </div>
       ) : (
         <div className="donor-dashboard-requests-grid">
@@ -34,10 +36,10 @@ export const EligibleRequestsList: React.FC<EligibleRequestsListProps> = ({
                 <div className="donor-dashboard-request-card__details">
                   <div className="donor-dashboard-request-card__top-line">
                     <h4 className="donor-dashboard-request-card__hospital">{request.hospital}</h4>
-                    <span className={`donor-dashboard-badge donor-dashboard-badge--${request.urgency.toLowerCase()}`}>{request.urgency}</span>
+                    <span className={`donor-dashboard-badge donor-dashboard-badge--${request.urgency.toLowerCase()}`}>{t(request.urgency)}</span>
                   </div>
-                  <p className="donor-dashboard-request-card__desc">Area: {request.area.name} · Active pledges: {request.activePledgesCount}</p>
-                  <p className="donor-dashboard-request-card__units">Remaining: <strong>{request.unitsStillNeeded} units</strong></p>
+                  <p className="donor-dashboard-request-card__desc">{t('Area:')} {request.area.name} · {t('Active pledges:')} {request.activePledgesCount}</p>
+                  <p className="donor-dashboard-request-card__units">{t('Remaining:')} <strong>{request.unitsStillNeeded} {t('units')}</strong></p>
                 </div>
               </div>
 
@@ -47,7 +49,7 @@ export const EligibleRequestsList: React.FC<EligibleRequestsListProps> = ({
                   disabled={isLoading || !request.canPledge || hasActivePledge}
                   onClick={() => onPledge(request.id)}
                 >
-                  {isLoading ? 'Processing...' : 'Pledge to Donate (Pledge)'}
+                  {isLoading ? t('Processing...') : t('Pledge to Donate (Pledge)')}
                 </button>
               </div>
             </div>

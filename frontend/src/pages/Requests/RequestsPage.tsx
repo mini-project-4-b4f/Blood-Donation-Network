@@ -7,6 +7,7 @@ import { Loading } from '../../components/common/Loading';
 import { PageContainer } from '../../components/common/PageContainer';
 import { BLOOD_TYPES, REQUEST_STATUSES, URGENCY_LEVELS } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { useRequests } from '../../context/RequestsContext';
 import type { BloodType } from '../../types/auth.types';
 import type { CoordinatorRequestDetails, RequestFilters, RequestStatus, Urgency } from '../../types/request.types';
@@ -20,6 +21,7 @@ const requestStatuses: readonly RequestStatus[] = REQUEST_STATUSES;
 const urgencyLevels: readonly Urgency[] = URGENCY_LEVELS;
 
 export function RequestsPage() {
+  const { t, direction } = useLanguage();
   const { requests, isRequestsLoading, requestsError, loadRequests, isMutationLoading, clearMutationError } = useRequests();
   const { areas, isAreasLoading, authError, loadAreas } = useAuth();
   const hasRequestedAreas = useRef(false);
@@ -84,20 +86,20 @@ export function RequestsPage() {
   }
 
   function handleCreateSuccess(request: CoordinatorRequestDetails) {
-    setSuccessMessage(`Request ${request.patientReference} created successfully.`);
+    setSuccessMessage(`${t('Request')} ${request.patientReference} ${t('created successfully.')}`);
   }
 
   function renderRequestResults() {
     if (hasInvalidFilters) {
-      return <ErrorMessage message="Some URL filters are invalid. Choose a supported value or reset filters." onRetry={handleResetFilters} />;
+      return <ErrorMessage message={t("Some URL filters are invalid. Choose a supported value or reset filters.")} onRetry={handleResetFilters} />;
     }
-    if (isRequestsLoading) return <Loading message="Loading blood requests..." />;
+    if (isRequestsLoading) return <Loading message={t("Loading blood requests...")} />;
     if (requestsError) return <ErrorMessage message={requestsError} onRetry={handleRetry} />;
     if (requests.length === 0) {
       return (
         <EmptyState
-          title="No blood requests found"
-          description={hasFilters ? 'Try changing or resetting your filters.' : 'Blood requests will appear here when they are published.'}
+          title={t("No blood requests found")}
+          description={t(hasFilters ? 'Try changing or resetting your filters.' : 'Blood requests will appear here when they are published.')}
         />
       );
     }
@@ -105,20 +107,20 @@ export function RequestsPage() {
   }
 
   return (
-    <div className="requests-page" dir="ltr">
-      <p className="requests-page__eyebrow">Request management</p>
+    <div className="requests-page" dir={direction}>
+      <p className="requests-page__eyebrow">{t('Request management')}</p>
       <PageContainer
-        title="Blood bank coordinator dashboard"
-        subtitle="Track blood requests and find eligible donors."
+        title={t('Blood bank coordinator dashboard')}
+        subtitle={t('Track blood requests and find eligible donors.')}
         actions={(
           <Button type="button" variant="primary" disabled={isMutationLoading} onClick={handleOpenCreate}>
-            Create SOS request
+            {t('Create SOS request')}
           </Button>
         )}
       >
         <div className="requests-page__content">
           {successMessage && <p className="requests-page__success" role="status">{successMessage}</p>}
-          <section className="requests-page__filters" aria-label="Filter requests">
+          <section className="requests-page__filters" aria-label={t("Filter requests")}>
             <RequestFiltersBar
               filters={filters}
               areas={areas}
@@ -132,7 +134,7 @@ export function RequestsPage() {
             )}
           </section>
 
-          <section className="requests-page__results" aria-label="Blood requests" aria-busy={isRequestsLoading}>
+          <section className="requests-page__results" aria-label={t("Blood requests")} aria-busy={isRequestsLoading}>
             {renderRequestResults()}
           </section>
         </div>

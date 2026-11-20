@@ -10,6 +10,7 @@ import { PageContainer } from '../../components/common/PageContainer';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { UrgencyBadge } from '../../components/common/UrgencyBadge';
 import { useRequests } from '../../context/RequestsContext';
+import { useLanguage } from '../../context/LanguageContext';
 import type { CoordinatorRequestDetails, RequestDonationItem, RequestPledgeItem } from '../../types/request.types';
 import { formatDate, formatDateTime, formatPhone, formatUnits } from '../../utils/format';
 import { UpdateRequestForm } from './UpdateRequestForm';
@@ -25,13 +26,14 @@ interface RequestPledgesListProps {
 }
 
 function RequestPledgesList({ pledges, canRecordDonation, isActionDisabled, onRecordDonation }: RequestPledgesListProps) {
+  const { t, language } = useLanguage();
   function handleRecordDonation(event: MouseEvent<HTMLButtonElement>) {
     const donorId = event.currentTarget.dataset.donorId;
     if (donorId) onRecordDonation(donorId);
   }
 
   if (pledges.length === 0) {
-    return <EmptyState title="No pledges yet" description="Pledges for this request will appear here." />;
+    return <EmptyState title={t("No pledges yet")} description={t("Pledges for this request will appear here.")} />;
   }
 
   return (
@@ -47,17 +49,17 @@ function RequestPledgesList({ pledges, canRecordDonation, isActionDisabled, onRe
           </div>
           <dl className="request-details-history__metadata">
             <div className="request-details-history__detail">
-              <dt className="request-details-history__label">Phone</dt>
+              <dt className="request-details-history__label">{t('Phone')}</dt>
               <dd className="request-details-history__value"><bdi>{formatPhone(pledge.donor.phone)}</bdi></dd>
             </div>
             <div className="request-details-history__detail">
-              <dt className="request-details-history__label">Area</dt>
+              <dt className="request-details-history__label">{t('Area')}</dt>
               <dd className="request-details-history__value">{pledge.donor.area.name}</dd>
             </div>
             <div className="request-details-history__detail">
-              <dt className="request-details-history__label">Pledged at</dt>
+              <dt className="request-details-history__label">{t('Pledged at')}</dt>
               <dd className="request-details-history__value">
-                <time dateTime={pledge.createdAt}>{formatDateTime(pledge.createdAt)}</time>
+                <time dateTime={pledge.createdAt}>{formatDateTime(pledge.createdAt, language)}</time>
               </dd>
             </div>
           </dl>
@@ -67,12 +69,12 @@ function RequestPledgesList({ pledges, canRecordDonation, isActionDisabled, onRe
               type="button"
               variant="outline"
               data-donor-id={pledge.donor.id}
-              aria-label={`Record donation for ${pledge.donor.fullName}`}
+              aria-label={`${t("Record donation for")} ${pledge.donor.fullName}`}
               aria-haspopup="dialog"
               disabled={isActionDisabled}
               onClick={handleRecordDonation}
             >
-              Record donation
+              {t('Record donation')}
             </Button>
           )}
         </li>
@@ -86,8 +88,9 @@ interface RequestDonationsListProps {
 }
 
 function RequestDonationsList({ donations }: RequestDonationsListProps) {
+  const { t, language } = useLanguage();
   if (donations.length === 0) {
-    return <EmptyState title="No donations recorded" description="Completed donations for this request will appear here." />;
+    return <EmptyState title={t("No donations recorded")} description={t("Completed donations for this request will appear here.")} />;
   }
 
   return (
@@ -99,32 +102,32 @@ function RequestDonationsList({ donations }: RequestDonationsListProps) {
               <h3 className="request-details-history__name">{donation.donor.fullName}</h3>
               <BloodTypeBadge bloodType={donation.donor.bloodType} />
             </div>
-            <span className="request-details-history__units">{formatUnits(donation.units)} recorded</span>
+            <span className="request-details-history__units">{formatUnits(donation.units, language)} {t('recorded')}</span>
           </div>
           <dl className="request-details-history__metadata">
             <div className="request-details-history__detail">
-              <dt className="request-details-history__label">Donor phone</dt>
+              <dt className="request-details-history__label">{t('Donor phone')}</dt>
               <dd className="request-details-history__value"><bdi>{formatPhone(donation.donor.phone)}</bdi></dd>
             </div>
             <div className="request-details-history__detail">
-              <dt className="request-details-history__label">Donation date</dt>
+              <dt className="request-details-history__label">{t('Donation date')}</dt>
               <dd className="request-details-history__value">
-                <time dateTime={donation.donationDate}>{formatDate(donation.donationDate)}</time>
+                <time dateTime={donation.donationDate}>{formatDate(donation.donationDate, language)}</time>
               </dd>
             </div>
             <div className="request-details-history__detail">
-              <dt className="request-details-history__label">Recorded at</dt>
+              <dt className="request-details-history__label">{t('Recorded at')}</dt>
               <dd className="request-details-history__value">
-                <time dateTime={donation.createdAt}>{formatDateTime(donation.createdAt)}</time>
+                <time dateTime={donation.createdAt}>{formatDateTime(donation.createdAt, language)}</time>
               </dd>
             </div>
             <div className="request-details-history__detail">
-              <dt className="request-details-history__label">Recorded by coordinator</dt>
+              <dt className="request-details-history__label">{t('Recorded by coordinator')}</dt>
               <dd className="request-details-history__value"><bdi>{formatPhone(donation.recordedBy.phone)}</bdi></dd>
             </div>
             {donation.recordedBy.email && (
               <div className="request-details-history__detail">
-                <dt className="request-details-history__label">Coordinator email</dt>
+                <dt className="request-details-history__label">{t('Coordinator email')}</dt>
                 <dd className="request-details-history__value"><bdi>{donation.recordedBy.email}</bdi></dd>
               </div>
             )}
@@ -136,6 +139,7 @@ function RequestDonationsList({ donations }: RequestDonationsListProps) {
 }
 
 export function RequestDetailsPage() {
+  const { t, direction, language } = useLanguage();
   const { requestId } = useParams<{ requestId: string }>();
   const { currentRequest, isRequestDetailsLoading, requestDetailsError, loadRequestById, isMutationLoading, clearMutationError } = useRequests();
   const [loadedRequestId, setLoadedRequestId] = useState<string | null>(null);
@@ -298,10 +302,10 @@ export function RequestDetailsPage() {
 
   function renderRequestDetails() {
     if (!requestId) {
-      return <EmptyState title="Request not found" description="No request ID was provided. Choose a request from the requests list." />;
+      return <EmptyState title={t("Request not found")} description={t("No request ID was provided. Choose a request from the requests list.")} />;
     }
     if (loadedRequestId !== requestId || isRequestDetailsLoading) {
-      return <Loading message="Loading request details..." />;
+      return <Loading message={t("Loading request details...")} />;
     }
     if (requestDetailsError === 'Blood request not found.') {
       return <EmptyState title="Request not found" description={requestDetailsError} />;
@@ -312,9 +316,9 @@ export function RequestDetailsPage() {
     if (!currentRequest || currentRequest.id !== requestId) {
       return (
         <EmptyState
-          title="No request details available"
-          description="Try loading the request again or return to the requests list."
-          action={<Button type="button" variant="outline" onClick={handleRetry}>Retry</Button>}
+          title={t("No request details available")}
+          description={t("Try loading the request again or return to the requests list.")}
+          action={<Button type="button" variant="outline" onClick={handleRetry}>{t('Retry')}</Button>}
         />
       );
     }
@@ -325,8 +329,8 @@ export function RequestDetailsPage() {
       <div className="request-details-page__content">
         {request.status !== 'OPEN' && (
           <p className="request-details-page__terminal" role="status">
-            This request is {request.status === 'FULFILLED' ? 'fulfilled' : 'cancelled'} and read-only.
-            {' '}It cannot be updated or reopened, and no further pledges, donor matching or donations are allowed.
+            {t('This request is')} {t(request.status === 'FULFILLED' ? 'fulfilled' : 'cancelled')} {t('and read-only.')}
+            {' '}{t('It cannot be updated or reopened, and no further pledges, donor matching or donations are allowed.')}
           </p>
         )}
 
@@ -335,7 +339,7 @@ export function RequestDetailsPage() {
             <div className="request-details-page__blood"><BloodTypeBadge bloodType={request.bloodType} /></div>
             <div className="request-details-page__identity">
               <div className="request-details-page__reference-row">
-                <p className="request-details-page__reference">Reference: <bdi>{request.patientReference}</bdi></p>
+                <p className="request-details-page__reference">{t('Reference:')} <bdi>{request.patientReference}</bdi></p>
                 <UrgencyBadge urgency={request.urgency} />
               </div>
               <h2 className="request-details-page__hospital" id="request-details-hospital">{request.hospital}</h2>
@@ -345,54 +349,54 @@ export function RequestDetailsPage() {
 
           <dl className="request-details-page__metadata">
             <div className="request-details-page__detail">
-              <dt className="request-details-page__label">Area</dt>
+              <dt className="request-details-page__label">{t('Area')}</dt>
               <dd className="request-details-page__value">{request.area.name}</dd>
             </div>
             <div className="request-details-page__detail">
-              <dt className="request-details-page__label">Created</dt>
-              <dd className="request-details-page__value"><time dateTime={request.createdAt}>{formatDateTime(request.createdAt)}</time></dd>
+              <dt className="request-details-page__label">{t('Created')}</dt>
+              <dd className="request-details-page__value"><time dateTime={request.createdAt}>{formatDateTime(request.createdAt, language)}</time></dd>
             </div>
             <div className="request-details-page__detail">
-              <dt className="request-details-page__label">Last updated</dt>
-              <dd className="request-details-page__value"><time dateTime={request.updatedAt}>{formatDateTime(request.updatedAt)}</time></dd>
+              <dt className="request-details-page__label">{t('Last updated')}</dt>
+              <dd className="request-details-page__value"><time dateTime={request.updatedAt}>{formatDateTime(request.updatedAt, language)}</time></dd>
             </div>
             <div className="request-details-page__detail">
-              <dt className="request-details-page__label">Request ID</dt>
+              <dt className="request-details-page__label">{t('Request ID')}</dt>
               <dd className="request-details-page__value"><bdi>{request.id}</bdi></dd>
             </div>
           </dl>
 
           <div className="request-details-page__note">
-            <h3 className="request-details-page__note-title">Coordinator notes</h3>
-            <p className="request-details-page__note-text">{request.note || 'No notes provided.'}</p>
+            <h3 className="request-details-page__note-title">{t('Coordinator notes')}</h3>
+            <p className="request-details-page__note-text">{request.note || t('No notes provided.')}</p>
           </div>
           {request.status === 'CANCELLED' && (
             <div className="request-details-page__note request-details-page__note--cancelled">
-              <h3 className="request-details-page__note-title">Cancellation reason</h3>
-              <p className="request-details-page__note-text">{request.cancelReason || 'No cancellation reason provided.'}</p>
+              <h3 className="request-details-page__note-title">{t('Cancellation reason')}</h3>
+              <p className="request-details-page__note-text">{request.cancelReason || t('No cancellation reason provided.')}</p>
             </div>
           )}
 
           <dl className="request-details-page__counters">
             <div className="request-details-page__counter">
-              <dt className="request-details-page__counter-label">Units required</dt>
+              <dt className="request-details-page__counter-label">{t('Units required')}</dt>
               <dd className="request-details-page__counter-value">{request.unitsRequired}</dd>
             </div>
             <div className="request-details-page__counter request-details-page__counter--collected">
-              <dt className="request-details-page__counter-label">Units collected</dt>
+              <dt className="request-details-page__counter-label">{t('Units collected')}</dt>
               <dd className="request-details-page__counter-value">{request.unitsCollected}</dd>
             </div>
             <div className="request-details-page__counter request-details-page__counter--needed">
-              <dt className="request-details-page__counter-label">Units still needed</dt>
+              <dt className="request-details-page__counter-label">{t('Units still needed')}</dt>
               <dd className="request-details-page__counter-value">{request.unitsStillNeeded}</dd>
             </div>
           </dl>
-          <p className="request-details-page__pledge-count">Active pledges: <strong>{request.activePledgesCount}</strong></p>
+          <p className="request-details-page__pledge-count">{t('Active pledges:')} <strong>{request.activePledgesCount}</strong></p>
         </section>
 
         <div className="request-details-page__history">
           <section className="request-details-history" aria-labelledby="request-details-pledges">
-            <h2 className="request-details-history__title" id="request-details-pledges">Pledges on this request ({request.pledges.length})</h2>
+            <h2 className="request-details-history__title" id="request-details-pledges">{t('Pledges on this request')} ({request.pledges.length})</h2>
             <RequestPledgesList
               pledges={request.pledges}
               canRecordDonation={request.status === 'OPEN'}
@@ -401,7 +405,7 @@ export function RequestDetailsPage() {
             />
           </section>
           <section className="request-details-history" aria-labelledby="request-details-donations">
-            <h2 className="request-details-history__title" id="request-details-donations">Recorded donations ({request.donations.length})</h2>
+            <h2 className="request-details-history__title" id="request-details-donations">{t('Recorded donations')} ({request.donations.length})</h2>
             <RequestDonationsList donations={request.donations} />
           </section>
         </div>
@@ -415,16 +419,16 @@ export function RequestDetailsPage() {
   );
 
   return (
-    <div className="request-details-page" dir="ltr">
-      <nav className="request-details-page__navigation" aria-label="Request navigation">
-        <Link className="request-details-page__link" ref={backLinkRef} to="/coordinator/requests">Back to requests</Link>
+    <div className="request-details-page" dir={direction}>
+      <nav className="request-details-page__navigation" aria-label={t("Request navigation")}>
+        <Link className="request-details-page__link" ref={backLinkRef} to="/coordinator/requests">{t('Back to requests')}</Link>
         <div className="request-details-page__actions">
           {canShowEligibleDonors && requestId && (
             <Link
               className="request-details-page__link request-details-page__link--primary"
               to={`/coordinator/requests/${encodeURIComponent(requestId)}/eligible-donors`}
             >
-              Find eligible donors
+              {t('Find eligible donors')}
             </Link>
           )}
           {canShowEligibleDonors && (
@@ -438,7 +442,7 @@ export function RequestDetailsPage() {
               disabled={isMutationLoading || editingRequest?.id === requestId || cancellingRequest?.id === requestId || recordingRequest?.id === requestId}
               onClick={handleOpenUpdate}
             >
-              Update request
+              {t('Update request')}
             </Button>
           )}
           {canShowEligibleDonors && (
@@ -453,7 +457,7 @@ export function RequestDetailsPage() {
               disabled={isMutationLoading || editingRequest?.id === requestId || cancellingRequest?.id === requestId || recordingRequest?.id === requestId}
               onClick={handleOpenCancel}
             >
-              Cancel request
+              {t('Cancel request')}
             </Button>
           )}
           {canShowEligibleDonors && (
@@ -468,20 +472,20 @@ export function RequestDetailsPage() {
               disabled={isMutationLoading || Boolean(editingRequest || cancellingRequest || recordingRequest)}
               onClick={handleOpenRecordDonation}
             >
-              Record donation
+              {t('Record donation')}
             </Button>
           )}
         </div>
       </nav>
-      <PageContainer title="Request details" subtitle="Blood request information, pledges and donation history.">
+      <PageContainer title={t("Request details")} subtitle={t("Blood request information, pledges and donation history.")}>
         {updatedRequestId && updatedRequestId === requestId && (
-          <p className="request-details-page__success" role="status" ref={successRef} tabIndex={-1}>Request updated successfully.</p>
+          <p className="request-details-page__success" role="status" ref={successRef} tabIndex={-1}>{t('Request updated successfully.')}</p>
         )}
         {cancelledRequestId && cancelledRequestId === requestId && (
-          <p className="request-details-page__success" role="status" ref={cancelSuccessRef} tabIndex={-1}>Request cancelled successfully.</p>
+          <p className="request-details-page__success" role="status" ref={cancelSuccessRef} tabIndex={-1}>{t('Request cancelled successfully.')}</p>
         )}
         {recordedRequestId && recordedRequestId === requestId && (
-          <p className="request-details-page__success" role="status" ref={recordSuccessRef} tabIndex={-1}>Donation recorded successfully.</p>
+          <p className="request-details-page__success" role="status" ref={recordSuccessRef} tabIndex={-1}>{t('Donation recorded successfully.')}</p>
         )}
         {/* Keep the modal mounted during Context refreshes so its draft and completion handler survive. */}
         {editingRequest && editingRequest.id === requestId && (

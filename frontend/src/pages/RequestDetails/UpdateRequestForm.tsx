@@ -4,6 +4,7 @@ import { Button } from '../../components/common/Button';
 import { ErrorMessage } from '../../components/common/ErrorMessage';
 import { MAX_UNITS, MIN_UNITS, URGENCY_LEVELS } from '../../constants';
 import { useRequests } from '../../context/RequestsContext';
+import { useLanguage } from '../../context/LanguageContext';
 import type { CoordinatorRequestDetails, UpdateRequestPayload, Urgency } from '../../types/request.types';
 
 interface UpdateRequestFormProps {
@@ -20,6 +21,7 @@ interface FormErrors {
 const urgencyLevels: readonly Urgency[] = URGENCY_LEVELS;
 
 export function UpdateRequestForm({ request, onCancel, onSuccess }: UpdateRequestFormProps) {
+  const { t, direction } = useLanguage();
   const { updateRequest, isMutationLoading, mutationError, clearMutationError, isRequestDetailsLoading } = useRequests();
   const [unitsInput, setUnitsInput] = useState(String(request.unitsRequired));
   const [urgency, setUrgency] = useState<Urgency | ''>(request.urgency);
@@ -115,11 +117,11 @@ export function UpdateRequestForm({ request, onCancel, onSuccess }: UpdateReques
     const selectedUrgency = urgencyLevels.find((value) => value === urgency);
     const nextErrors: FormErrors = {};
     if (!Number.isInteger(unitsRequired) || unitsRequired < MIN_UNITS || unitsRequired > MAX_UNITS) {
-      nextErrors.unitsRequired = `Units required must be a whole number between ${MIN_UNITS} and ${MAX_UNITS}.`;
+      nextErrors.unitsRequired = `${t('Units required')} ${MIN_UNITS} ${t('and')} ${MAX_UNITS}.`;
     } else if (unitsRequired < request.unitsCollected) {
-      nextErrors.unitsRequired = 'Units required cannot be reduced below the units already collected.';
+      nextErrors.unitsRequired = t('Units required cannot be reduced below the units already collected.');
     }
-    if (!selectedUrgency) nextErrors.urgency = 'Urgency must be CRITICAL, HIGH, or NORMAL.';
+    if (!selectedUrgency) nextErrors.urgency = t('Urgency must be CRITICAL, HIGH, or NORMAL.');
     setErrors(nextErrors);
     if (nextErrors.unitsRequired) {
       unitsRef.current?.focus();
@@ -147,7 +149,7 @@ export function UpdateRequestForm({ request, onCancel, onSuccess }: UpdateReques
       className="request-details-update__dialog"
       id="request-details-update-dialog"
       ref={dialogRef}
-      dir="ltr"
+      dir={direction}
       aria-modal="true"
       aria-labelledby={`${id}-title`}
       aria-describedby={`${id}-description`}
@@ -166,13 +168,13 @@ export function UpdateRequestForm({ request, onCancel, onSuccess }: UpdateReques
         onSubmit={handleSubmit}
       >
         <header className="request-details-update__header">
-          <h2 className="request-details-update__title" id={`${id}-title`}>Update request</h2>
+          <h2 className="request-details-update__title" id={`${id}-title`}>{t('Update request')}</h2>
           <Button
             className="request-details-update__close"
             type="button"
             variant="secondary"
             size="sm"
-            aria-label="Close update request dialog"
+            aria-label={t("Close update request dialog")}
             disabled={isMutationLoading}
             onClick={handleCancel}
           >
@@ -180,20 +182,20 @@ export function UpdateRequestForm({ request, onCancel, onSuccess }: UpdateReques
           </Button>
         </header>
         <p className="request-details-update__description" id={`${id}-description`}>
-          Edit units required, urgency and coordinator notes for <bdi>{request.patientReference}</bdi>.
+          {t('Edit units required, urgency and coordinator notes for')} <bdi>{request.patientReference}</bdi>.
         </p>
 
         {request.status !== 'OPEN' && (
           <p className="request-details-update__notice" role="status" ref={terminalRef} tabIndex={-1}>
-            Only OPEN requests can be updated.
+            {t('Only OPEN requests can be updated.')}
           </p>
         )}
 
         <fieldset className="request-details-update__fields" disabled={isDisabled}>
-          <legend className="request-details-update__legend">Editable request information</legend>
+          <legend className="request-details-update__legend">{t('Editable request information')}</legend>
           <div className="request-details-update__pair">
             <div className="request-details-update__field">
-              <label className="request-details-update__label" htmlFor={`${id}-units`}>Units required</label>
+              <label className="request-details-update__label" htmlFor={`${id}-units`}>{t('Units required')}</label>
               <input
                 className="request-details-update__input"
                 id={`${id}-units`}
@@ -210,13 +212,13 @@ export function UpdateRequestForm({ request, onCancel, onSuccess }: UpdateReques
                 aria-describedby={`${id}-units-help${errors.unitsRequired ? ` ${id}-units-error` : ''}`}
               />
               <p className="request-details-update__help" id={`${id}-units-help`}>
-                Whole numbers from {MIN_UNITS} to {MAX_UNITS}. Units already collected: {request.unitsCollected}.
+                {t('Whole numbers from')} {MIN_UNITS} {t('to')} {MAX_UNITS}. {t('Units already collected:')} {request.unitsCollected}.
               </p>
               {errors.unitsRequired && <p className="request-details-update__field-error" id={`${id}-units-error`} role="alert">{errors.unitsRequired}</p>}
             </div>
 
             <div className="request-details-update__field">
-              <label className="request-details-update__label" htmlFor={`${id}-urgency`}>Urgency</label>
+              <label className="request-details-update__label" htmlFor={`${id}-urgency`}>{t('Urgency')}</label>
               <select
                 className="request-details-update__input"
                 id={`${id}-urgency`}
@@ -235,7 +237,7 @@ export function UpdateRequestForm({ request, onCancel, onSuccess }: UpdateReques
           </div>
 
           <div className="request-details-update__field">
-            <label className="request-details-update__label" htmlFor={`${id}-note`}>Note (optional)</label>
+            <label className="request-details-update__label" htmlFor={`${id}-note`}>{t('Note (optional)')}</label>
             <textarea
               className="request-details-update__input request-details-update__input--note"
               id={`${id}-note`}
@@ -252,7 +254,7 @@ export function UpdateRequestForm({ request, onCancel, onSuccess }: UpdateReques
             <ErrorMessage message={mutationError} />
           </div>
         )}
-        {isMutationLoading && <p className="request-details-update__help" role="status">Saving request and refreshing its details...</p>}
+        {isMutationLoading && <p className="request-details-update__help" role="status">{t('Saving request and refreshing its details...')}</p>}
         <div className="request-details-update__actions">
           <Button className="request-details-update__action" type="button" variant="outline" disabled={isMutationLoading} onClick={handleCancel}>
             {request.status === 'OPEN' ? 'Discard changes' : 'Close'}

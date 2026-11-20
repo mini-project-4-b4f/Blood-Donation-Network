@@ -3,6 +3,7 @@ import type { ChangeEvent, KeyboardEvent, SubmitEvent, SyntheticEvent } from 're
 import { Button } from '../../components/common/Button';
 import { ErrorMessage } from '../../components/common/ErrorMessage';
 import { useRequests } from '../../context/RequestsContext';
+import { useLanguage } from '../../context/LanguageContext';
 import type { CancelRequestPayload, CoordinatorRequestDetails } from '../../types/request.types';
 
 interface CancelRequestModalProps {
@@ -12,6 +13,7 @@ interface CancelRequestModalProps {
 }
 
 export function CancelRequestModal({ request, onClose, onSuccess }: CancelRequestModalProps) {
+  const { t, direction } = useLanguage();
   const { cancelRequest, isMutationLoading, mutationError, clearMutationError, isRequestDetailsLoading } = useRequests();
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState<string | null>(null);
@@ -92,7 +94,7 @@ export function CancelRequestModal({ request, onClose, onSuccess }: CancelReques
     clearMutationError();
     const cancelReason = reason.trim();
     if (!cancelReason) {
-      setReasonError('Cancellation reason is required.');
+      setReasonError(t('Cancellation reason is required.'));
       reasonRef.current?.focus();
       return;
     }
@@ -113,7 +115,7 @@ export function CancelRequestModal({ request, onClose, onSuccess }: CancelReques
       className="request-details-cancel__dialog"
       id="request-details-cancel-dialog"
       ref={dialogRef}
-      dir="ltr"
+      dir={direction}
       aria-modal="true"
       aria-labelledby={`${id}-title`}
       aria-describedby={`${id}-description`}
@@ -123,13 +125,13 @@ export function CancelRequestModal({ request, onClose, onSuccess }: CancelReques
     >
       <form className="request-details-cancel" noValidate onSubmit={handleSubmit} aria-busy={isMutationLoading}>
         <header className="request-details-cancel__header">
-          <h2 className="request-details-cancel__title" id={`${id}-title`}>Cancel SOS request</h2>
+          <h2 className="request-details-cancel__title" id={`${id}-title`}>{t('Cancel SOS request')}</h2>
           <Button
             className="request-details-cancel__close"
             type="button"
             variant="secondary"
             size="sm"
-            aria-label="Close cancel request dialog"
+            aria-label={t("Close cancel request dialog")}
             disabled={isMutationLoading}
             onClick={handleClose}
           >
@@ -137,19 +139,19 @@ export function CancelRequestModal({ request, onClose, onSuccess }: CancelReques
           </Button>
         </header>
         <p className="request-details-cancel__description" id={`${id}-description`}>
-          Cancelling closes request <bdi>{request.patientReference}</bdi> and releases all active pledges. This action cannot be undone.
+          {t('Cancelling closes request')} <bdi>{request.patientReference}</bdi> {t('and releases all active pledges. This action cannot be undone.')}
         </p>
 
         {request.status !== 'OPEN' && (
           <p className="request-details-cancel__notice" role="status" ref={terminalRef} tabIndex={-1}>
-            Only OPEN requests can be cancelled.
+            {t('Only OPEN requests can be cancelled.')}
           </p>
         )}
 
         <fieldset className="request-details-cancel__fields" disabled={isDisabled}>
-          <legend className="request-details-cancel__legend">Request cancellation</legend>
+          <legend className="request-details-cancel__legend">{t('Request cancellation')}</legend>
           <div className="request-details-cancel__field">
-            <label className="request-details-cancel__label" htmlFor={`${id}-reason`}>Cancellation reason (required)</label>
+            <label className="request-details-cancel__label" htmlFor={`${id}-reason`}>{t('Cancellation reason (required)')}</label>
             <textarea
               className="request-details-cancel__input"
               id={`${id}-reason`}
@@ -158,7 +160,7 @@ export function CancelRequestModal({ request, onClose, onSuccess }: CancelReques
               rows={4}
               required
               value={reason}
-              placeholder="Example: The required units were supplied by another blood bank..."
+              placeholder={t("Example: The required units were supplied by another blood bank...")}
               onChange={handleReasonChange}
               aria-invalid={Boolean(reasonError)}
               aria-describedby={reasonError ? `${id}-reason-error` : undefined}
@@ -172,12 +174,12 @@ export function CancelRequestModal({ request, onClose, onSuccess }: CancelReques
             <ErrorMessage message={mutationError} />
           </div>
         )}
-        {isMutationLoading && <p className="request-details-cancel__help" role="status">Cancelling request and refreshing its details...</p>}
+        {isMutationLoading && <p className="request-details-cancel__help" role="status">{t('Cancelling request and refreshing its details...')}</p>}
         <div className="request-details-cancel__actions">
           <Button className="request-details-cancel__action request-details-cancel__confirm" type="submit" variant="danger" isLoading={isMutationLoading} disabled={isDisabled}>
             {isMutationLoading ? 'Cancelling...' : 'Confirm cancellation'}
           </Button>
-          <Button className="request-details-cancel__action" type="button" variant="secondary" disabled={isMutationLoading} onClick={handleClose}>Go back</Button>
+          <Button className="request-details-cancel__action" type="button" variant="secondary" disabled={isMutationLoading} onClick={handleClose}>{t('Go back')}</Button>
         </div>
       </form>
     </dialog>
