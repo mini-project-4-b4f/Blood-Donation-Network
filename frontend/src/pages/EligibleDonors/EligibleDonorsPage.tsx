@@ -212,7 +212,7 @@ function EligibleDonorsContent({ requestId }: EligibleDonorsContentProps) {
 
   return (
     <div className="eligible-donors-page" dir={direction}>
-      <PageContainer title={t("Eligible Donors")} subtitle="Find compatible donors in the request's area.">
+      <PageContainer title={t("Eligible Donors")} subtitle={t("Find compatible donors in the request's area.")}>
         <Link className="eligible-donors-page__back" ref={backLinkRef} to={requestId ? `/coordinator/requests/${encodeURIComponent(requestId)}` : '/coordinator/requests'}>
           <span aria-hidden="true">← </span>{requestId ? 'Back to Request Details' : 'Back to Requests List'}
         </Link>
