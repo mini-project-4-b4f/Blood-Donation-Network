@@ -10,7 +10,7 @@ export const DonationHistoryTable: React.FC<DonationHistoryTableProps> = ({ hist
   const { t } = useLanguage();
   return (
     <div className="donor-dashboard-section">
-      <h3 className="donor-dashboard-section__title"{t('My Completed Past Donations History')}</h3>
+      <h3 className="donor-dashboard-section__title">{t('My Completed Past Donations History')}</h3>
       <div className="donor-dashboard-table-container">
         <table className="donor-dashboard-table">
           <thead>
@@ -25,7 +25,7 @@ export const DonationHistoryTable: React.FC<DonationHistoryTableProps> = ({ hist
           <tbody>
             {(!history || history.length === 0) ? (
               <tr>
-                <td colSpan={5} className="text-center"{t('No completed past donations found.')}</td>
+                <td colSpan={5} className="text-center">{t('No completed past donations found.')}</td>
               </tr>
             ) : (
               history.map((item) => (
