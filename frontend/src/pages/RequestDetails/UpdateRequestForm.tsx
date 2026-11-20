@@ -212,7 +212,7 @@ export function UpdateRequestForm({ request, onCancel, onSuccess }: UpdateReques
                 aria-describedby={`${id}-units-help${errors.unitsRequired ? ` ${id}-units-error` : ''}`}
               />
               <p className="request-details-update__help" id={`${id}-units-help`}>
-                Whole numbers from {MIN_UNITS} to {MAX_UNITS}. Units already collected: {request.unitsCollected}.
+                {t('Whole numbers from')} {MIN_UNITS} {t('to')} {MAX_UNITS}. {t('Units already collected:')} {request.unitsCollected}.
               </p>
               {errors.unitsRequired && <p className="request-details-update__field-error" id={`${id}-units-error`} role="alert">{errors.unitsRequired}</p>}
             </div>
