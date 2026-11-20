@@ -121,7 +121,7 @@ function EligibleDonorsContent({ requestId }: EligibleDonorsContentProps) {
       );
     }
     if (!eligibleDonorsResult || eligibleDonorsResult.requestId !== requestId) {
-      return <EmptyState title={t("Matching data unavailable")} description="Reload the eligible donors for this request." action={<Button type="button" variant="outline" onClick={handleRetryDonors}>{t('Reload eligible donors')}</Button>} />;
+      return <EmptyState title={t("Matching data unavailable")} description={t("Reload the eligible donors for this request.")} action={<Button type="button" variant="outline" onClick={handleRetryDonors}>{t('Reload eligible donors')}</Button>} />;
     }
 
     return (
@@ -129,7 +129,7 @@ function EligibleDonorsContent({ requestId }: EligibleDonorsContentProps) {
         <ExcludedDonorsSummary excludedSummary={eligibleDonorsResult.excludedSummary} />
         <section className="eligible-donors-page__results" aria-labelledby="eligible-donors-results-title">
           <header className="eligible-donors-page__results-header">
-            <h2 className="eligible-donors-page__results-title" id="eligible-donors-results-title">Ranked eligible donors for this request ({eligibleDonorsResult.eligibleDonors.length})</h2>
+            <h2 className="eligible-donors-page__results-title" id="eligible-donors-results-title">{t("Ranked eligible donors for this request")} ({eligibleDonorsResult.eligibleDonors.length})</h2>
             <p className="eligible-donors-page__privacy">{t('Personal data is hidden from the public.')}</p>
           </header>
           {eligibleDonorsResult.eligibleDonors.length === 0 ? (
@@ -137,7 +137,7 @@ function EligibleDonorsContent({ requestId }: EligibleDonorsContentProps) {
           ) : (
             <div className="eligible-donors-page__table-scroll" role="region" aria-label={t("Ranked eligible donors")} tabIndex={0}>
               <table className="eligible-donors-page__table">
-                <caption className="eligible-donors-page__caption">Eligible donors in the order returned by the server</caption>
+                <caption className="eligible-donors-page__caption">{t("Eligible donors in the order returned by the server")}</caption>
                 <thead>
                   <tr>
                     <th className="eligible-donors-page__column" scope="col">{t('Rank')}</th>
@@ -163,7 +163,7 @@ function EligibleDonorsContent({ requestId }: EligibleDonorsContentProps) {
   }
 
   function renderRequest() {
-    if (!requestId) return <EmptyState title={t("Request not found")} description="No request ID was provided. Choose a request from the requests list." />;
+    if (!requestId) return <EmptyState title={t("Request not found")} description={t("No request ID was provided. Choose a request from the requests list.")} />;
     if (!hasLoadedRequest || isRequestDetailsLoading) return <Loading message={t("Loading request details...")} />;
     if (requestDetailsError === 'Blood request not found.') return <EmptyState title={t("Request not found")} description={requestDetailsError} />;
     if (requestDetailsError) return <ErrorMessage message={requestDetailsError} onRetry={handleRetryRequest} />;
