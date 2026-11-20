@@ -115,8 +115,6 @@ const translations: Record<string, { en: string; ar: string }> = {
   'No blood requests found': { en: 'No blood requests found', ar: 'لم يتم العثور على طلبات تبرع بالدم' },
   'Try changing or resetting your filters.': { en: 'Try changing or resetting your filters.', ar: 'جرّب تغيير عوامل التصفية أو إعادة ضبطها.' },
   'Blood requests will appear here when they are published.': { en: 'Blood requests will appear here when they are published.', ar: 'ستظهر طلبات التبرع هنا عند نشرها.' },
-  'Filter requests': { en: 'Filter requests', ar: 'تصفية الطلبات' },
-  'Blood requests': { en: 'Blood requests', ar: 'طلبات التبرع بالدم' },
   'Request filters': { en: 'Request filters', ar: 'عوامل تصفية الطلبات' },
   'Filter blood requests': { en: 'Filter blood requests', ar: 'تصفية طلبات التبرع بالدم' },
   'Status': { en: 'Status', ar: 'الحالة' },
@@ -342,6 +340,7 @@ const translations: Record<string, { en: string; ar: string }> = {
   'Failed to deactivate account.': { en: 'Failed to deactivate account.', ar: 'فشل إيقاف الحساب.' },
   'to': { en: 'to', ar: 'إلى' },
   'Reload the eligible donors for this request.': { en: 'Reload the eligible donors for this request.', ar: 'إعادة تحميل المتبرعين المؤهلين لهذا الطلب.' },
+  'Find compatible donors in the request\'s area.': { en: 'Find compatible donors in the request\'s area.', ar: 'اعثر على متبرعين متوافقين في منطقة الطلب.' },
 };
 
 interface LanguageContextValue {
