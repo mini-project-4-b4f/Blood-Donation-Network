@@ -25,7 +25,7 @@ export function Navbar() {
         <Link to="/" className="layout-navbar__brand">
           <span className="layout-navbar__logo" aria-hidden="true">♥</span>
           <span className="layout-navbar__brand-text">
-            <span className="layout-navbar__title">Blood Donation Network</span>
+            <span className="layout-navbar__title">{t("Blood Donation Network")}</span>
           </span>
         </Link>
 
@@ -47,7 +47,7 @@ export function Navbar() {
             type="button"
             className="layout-navbar__language"
             onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
-            aria-label={language === 'en' ? 'Switch language to Arabic' : 'Switch language to English'}
+            aria-label={language === 'en' ? t('Switch language to Arabic') : t('Switch language to English')}
             lang={language === 'en' ? 'ar' : 'en'}
           >
             {language === 'en' ? 'العربية' : 'English'}
