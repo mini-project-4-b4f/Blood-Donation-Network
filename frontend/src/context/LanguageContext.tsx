@@ -313,6 +313,7 @@ const translations: Record<string, { en: string; ar: string }> = {
   'Blood Donation Network': { en: 'Blood Donation Network', ar: 'شبكة التبرع بالدم' },
   'Switch language to Arabic': { en: 'Switch language to Arabic', ar: 'تغيير اللغة إلى العربية' },
   'Switch language to English': { en: 'Switch language to English', ar: 'تغيير اللغة إلى الإنجليزية' },
+  'blood request at': { en: 'blood request at', ar: 'طلب تبرع بالدم في' },
 };
 
 interface LanguageContextValue {
