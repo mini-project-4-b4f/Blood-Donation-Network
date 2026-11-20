@@ -25,7 +25,8 @@ interface RequestPledgesListProps {
   onRecordDonation(donorId: string): void;
 }
 
-function RequestPledgesList({ pledges, canRecordDonation, isActionDisabled, onRecordDonation }: RequestPledgesListProps) {\n  const { t } = useLanguage();
+function RequestPledgesList({ pledges, canRecordDonation, isActionDisabled, onRecordDonation }: RequestPledgesListProps) {
+  const { t } = useLanguage();
   function handleRecordDonation(event: MouseEvent<HTMLButtonElement>) {
     const donorId = event.currentTarget.dataset.donorId;
     if (donorId) onRecordDonation(donorId);
