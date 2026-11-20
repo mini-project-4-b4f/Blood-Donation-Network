@@ -25,7 +25,7 @@ interface RequestPledgesListProps {
   onRecordDonation(donorId: string): void;
 }
 
-function RequestPledgesList({ pledges, canRecordDonation, isActionDisabled, onRecordDonation }: RequestPledgesListProps) {
+function RequestPledgesList({ pledges, canRecordDonation, isActionDisabled, onRecordDonation }: RequestPledgesListProps) {\n  const { t } = useLanguage();
   function handleRecordDonation(event: MouseEvent<HTMLButtonElement>) {
     const donorId = event.currentTarget.dataset.donorId;
     if (donorId) onRecordDonation(donorId);
@@ -48,15 +48,15 @@ function RequestPledgesList({ pledges, canRecordDonation, isActionDisabled, onRe
           </div>
           <dl className="request-details-history__metadata">
             <div className="request-details-history__detail">
-              <dt className="request-details-history__label">Phone</dt>
+              <dt className="request-details-history__label">{t('Phone')}</dt>
               <dd className="request-details-history__value"><bdi>{formatPhone(pledge.donor.phone)}</bdi></dd>
             </div>
             <div className="request-details-history__detail">
-              <dt className="request-details-history__label">Area</dt>
+              <dt className="request-details-history__label">{t('Area')}</dt>
               <dd className="request-details-history__value">{pledge.donor.area.name}</dd>
             </div>
             <div className="request-details-history__detail">
-              <dt className="request-details-history__label">Pledged at</dt>
+              <dt className="request-details-history__label">{t('Pledged at')}</dt>
               <dd className="request-details-history__value">
                 <time dateTime={pledge.createdAt}>{formatDateTime(pledge.createdAt)}</time>
               </dd>
@@ -68,7 +68,7 @@ function RequestPledgesList({ pledges, canRecordDonation, isActionDisabled, onRe
               type="button"
               variant="outline"
               data-donor-id={pledge.donor.id}
-              aria-label={`Record donation for ${pledge.donor.fullName}`}
+              aria-label={`${t("Record donation for")} ${pledge.donor.fullName}`}
               aria-haspopup="dialog"
               disabled={isActionDisabled}
               onClick={handleRecordDonation}
@@ -137,7 +137,7 @@ function RequestDonationsList({ donations }: RequestDonationsListProps) {
 }
 
 export function RequestDetailsPage() {
-  const { direction } = useLanguage();
+  const { t, direction } = useLanguage();
   const { requestId } = useParams<{ requestId: string }>();
   const { currentRequest, isRequestDetailsLoading, requestDetailsError, loadRequestById, isMutationLoading, clearMutationError } = useRequests();
   const [loadedRequestId, setLoadedRequestId] = useState<string | null>(null);
@@ -347,45 +347,45 @@ export function RequestDetailsPage() {
 
           <dl className="request-details-page__metadata">
             <div className="request-details-page__detail">
-              <dt className="request-details-page__label">Area</dt>
+              <dt className="request-details-page__label">{t('Area')}</dt>
               <dd className="request-details-page__value">{request.area.name}</dd>
             </div>
             <div className="request-details-page__detail">
-              <dt className="request-details-page__label">Created</dt>
+              <dt className="request-details-page__label">{t('Created')}</dt>
               <dd className="request-details-page__value"><time dateTime={request.createdAt}>{formatDateTime(request.createdAt)}</time></dd>
             </div>
             <div className="request-details-page__detail">
-              <dt className="request-details-page__label">Last updated</dt>
+              <dt className="request-details-page__label">{t('Last updated')}</dt>
               <dd className="request-details-page__value"><time dateTime={request.updatedAt}>{formatDateTime(request.updatedAt)}</time></dd>
             </div>
             <div className="request-details-page__detail">
-              <dt className="request-details-page__label">Request ID</dt>
+              <dt className="request-details-page__label">{t('Request ID')}</dt>
               <dd className="request-details-page__value"><bdi>{request.id}</bdi></dd>
             </div>
           </dl>
 
           <div className="request-details-page__note">
-            <h3 className="request-details-page__note-title">Coordinator notes</h3>
-            <p className="request-details-page__note-text">{request.note || 'No notes provided.'}</p>
+            <h3 className="request-details-page__note-title">{t('Coordinator notes')}</h3>
+            <p className="request-details-page__note-text">{request.note || t('No notes provided.')}</p>
           </div>
           {request.status === 'CANCELLED' && (
             <div className="request-details-page__note request-details-page__note--cancelled">
-              <h3 className="request-details-page__note-title">Cancellation reason</h3>
-              <p className="request-details-page__note-text">{request.cancelReason || 'No cancellation reason provided.'}</p>
+              <h3 className="request-details-page__note-title">{t('Cancellation reason')}</h3>
+              <p className="request-details-page__note-text">{request.cancelReason || t('No cancellation reason provided.')}</p>
             </div>
           )}
 
           <dl className="request-details-page__counters">
             <div className="request-details-page__counter">
-              <dt className="request-details-page__counter-label">Units required</dt>
+              <dt className="request-details-page__counter-label">{t('Units required')}</dt>
               <dd className="request-details-page__counter-value">{request.unitsRequired}</dd>
             </div>
             <div className="request-details-page__counter request-details-page__counter--collected">
-              <dt className="request-details-page__counter-label">Units collected</dt>
+              <dt className="request-details-page__counter-label">{t('Units collected')}</dt>
               <dd className="request-details-page__counter-value">{request.unitsCollected}</dd>
             </div>
             <div className="request-details-page__counter request-details-page__counter--needed">
-              <dt className="request-details-page__counter-label">Units still needed</dt>
+              <dt className="request-details-page__counter-label">{t('Units still needed')}</dt>
               <dd className="request-details-page__counter-value">{request.unitsStillNeeded}</dd>
             </div>
           </dl>
@@ -418,8 +418,8 @@ export function RequestDetailsPage() {
 
   return (
     <div className="request-details-page" dir={direction}>
-      <nav className="request-details-page__navigation" aria-label="Request navigation">
-        <Link className="request-details-page__link" ref={backLinkRef} to="/coordinator/requests">Back to requests</Link>
+      <nav className="request-details-page__navigation" aria-label={t("Request navigation")}>
+        <Link className="request-details-page__link" ref={backLinkRef} to="/coordinator/requests">{t('Back to requests')}</Link>
         <div className="request-details-page__actions">
           {canShowEligibleDonors && requestId && (
             <Link
@@ -475,15 +475,15 @@ export function RequestDetailsPage() {
           )}
         </div>
       </nav>
-      <PageContainer title="Request details" subtitle="Blood request information, pledges and donation history.">
+      <PageContainer title={t("Request details")} subtitle={t("Blood request information, pledges and donation history.")}>
         {updatedRequestId && updatedRequestId === requestId && (
-          <p className="request-details-page__success" role="status" ref={successRef} tabIndex={-1}>Request updated successfully.</p>
+          <p className="request-details-page__success" role="status" ref={successRef} tabIndex={-1}>{t('Request updated successfully.')}</p>
         )}
         {cancelledRequestId && cancelledRequestId === requestId && (
-          <p className="request-details-page__success" role="status" ref={cancelSuccessRef} tabIndex={-1}>Request cancelled successfully.</p>
+          <p className="request-details-page__success" role="status" ref={cancelSuccessRef} tabIndex={-1}>{t('Request cancelled successfully.')}</p>
         )}
         {recordedRequestId && recordedRequestId === requestId && (
-          <p className="request-details-page__success" role="status" ref={recordSuccessRef} tabIndex={-1}>Donation recorded successfully.</p>
+          <p className="request-details-page__success" role="status" ref={recordSuccessRef} tabIndex={-1}>{t('Donation recorded successfully.')}</p>
         )}
         {/* Keep the modal mounted during Context refreshes so its draft and completion handler survive. */}
         {editingRequest && editingRequest.id === requestId && (
