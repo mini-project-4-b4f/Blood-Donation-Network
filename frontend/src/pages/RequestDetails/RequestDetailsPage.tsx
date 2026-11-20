@@ -88,7 +88,7 @@ interface RequestDonationsListProps {
 }
 
 function RequestDonationsList({ donations }: RequestDonationsListProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   if (donations.length === 0) {
     return <EmptyState title={t("No donations recorded")} description={t("Completed donations for this request will appear here.")} />;
   }
