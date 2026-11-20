@@ -133,7 +133,7 @@ function EligibleDonorsContent({ requestId }: EligibleDonorsContentProps) {
             <p className="eligible-donors-page__privacy">{t('Personal data is hidden from the public.')}</p>
           </header>
           {eligibleDonorsResult.eligibleDonors.length === 0 ? (
-            <div className="eligible-donors-page__empty"><EmptyState title={t("No eligible donors")} description="No eligible donors are currently available in this area. The exclusion counts above explain why compatible donors were excluded." /></div>
+            <div className="eligible-donors-page__empty"><EmptyState title={t("No eligible donors")} description={t("No eligible donors are currently available in this area. The exclusion counts above explain why compatible donors were excluded.")} /></div>
           ) : (
             <div className="eligible-donors-page__table-scroll" role="region" aria-label={t("Ranked eligible donors")} tabIndex={0}>
               <table className="eligible-donors-page__table">
@@ -174,7 +174,7 @@ function EligibleDonorsContent({ requestId }: EligibleDonorsContentProps) {
       <>
         <section className="eligible-donors-page__summary" aria-label={t("Request summary")}>
           <div className="eligible-donors-page__request-heading">
-            <h2 className="eligible-donors-page__reference">Request <bdi>{currentRequest.patientReference}</bdi></h2>
+            <h2 className="eligible-donors-page__reference">{t("Request")} <bdi>{currentRequest.patientReference}</bdi></h2>
             <div className="eligible-donors-page__badges">
               <StatusBadge status={currentRequest.status} />
               <UrgencyBadge urgency={currentRequest.urgency} />
@@ -203,7 +203,7 @@ function EligibleDonorsContent({ requestId }: EligibleDonorsContentProps) {
         </section>
         {currentRequest.status !== 'OPEN' ? (
           <div className="eligible-donors-page__closed" role="status">
-            <EmptyState title={t("This request is closed")} description="Eligible donors can only be matched for OPEN requests. Donation recording is unavailable. Request history remains available in Request Details." />
+            <EmptyState title={t("This request is closed")} description={t("Eligible donors can only be matched for OPEN requests. Donation recording is unavailable. Request history remains available in Request Details.")} />
           </div>
         ) : renderDonors()}
       </>
