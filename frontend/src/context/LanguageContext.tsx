@@ -333,6 +333,7 @@ const translations: Record<string, { en: string; ar: string }> = {
   'Request': { en: 'Request', ar: 'الطلب' },
   'Blood request not found.': { en: 'Blood request not found.', ar: 'طلب التبرع بالدم غير موجود.' },
   'Eligible donors can only be matched for OPEN requests.': { en: 'Eligible donors can only be matched for OPEN requests.', ar: 'يمكن مطابقة المتبرعين للطلبات المفتوحة فقط.' },
+  'created successfully.': { en: 'created successfully.', ar: 'تم إنشاؤه بنجاح.' },
 };
 
 interface LanguageContextValue {
