@@ -18,7 +18,7 @@ export const DonorDashboardPage = () => {
   }
 
   if (error || !profile) {
-    return <div className="donor-dashboard-error" role="alert"><p>{error || t('Failed to load profile data.')}</p></div>;
+    return <div className="donor-dashboard-error" role="alert"><p>{error ? t(error) : t('Failed to load profile data.')}</p></div>;
   }
 
   return (
@@ -33,7 +33,7 @@ export const DonorDashboardPage = () => {
           </div>
         </div>
       </div>
-      {actionError && <div className="donor-dashboard-alert donor-dashboard-alert--error" role="alert">{actionError}</div>}
+      {actionError && <div className="donor-dashboard-alert donor-dashboard-alert--error" role="alert">{t(actionError)}</div>}
       <EligibilityBanner profile={profile} />
       <ActivePledgeCard pledge={profile.activePledge ?? null} onWithdraw={withdrawPledge} isLoading={isActionLoading} />
       <EligibleRequestsList requests={eligibleRequests} hasActivePledge={!!profile.activePledge} onPledge={createPledge} isLoading={isActionLoading} />
