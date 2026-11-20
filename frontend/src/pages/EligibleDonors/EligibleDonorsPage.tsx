@@ -193,7 +193,7 @@ function EligibleDonorsContent({ requestId }: EligibleDonorsContentProps) {
             </div>
             <div className="eligible-donors-page__detail">
               <dt className="eligible-donors-page__label">{t('Units still needed')}</dt>
-              <dd className="eligible-donors-page__value eligible-donors-page__value--needed">{formatUnits(currentRequest.unitsStillNeeded)}</dd>
+              <dd className="eligible-donors-page__value eligible-donors-page__value--needed">{formatUnits(currentRequest.unitsStillNeeded, language)}</dd>
             </div>
             <div className="eligible-donors-page__detail">
               <dt className="eligible-donors-page__label">{t('Active pledges')}</dt>
