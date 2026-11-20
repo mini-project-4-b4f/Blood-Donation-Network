@@ -35,7 +35,7 @@ export const EligibleRequestsList: React.FC<EligibleRequestsListProps> = ({
                 <div className="donor-dashboard-request-card__details">
                   <div className="donor-dashboard-request-card__top-line">
                     <h4 className="donor-dashboard-request-card__hospital">{request.hospital}</h4>
-                    <span className={`donor-dashboard-badge donor-dashboard-badge--${request.urgency.toLowerCase()}`}>{request.urgency}</span>
+                    <span className={`donor-dashboard-badge donor-dashboard-badge--${request.urgency.toLowerCase()}`}>{t(request.urgency)}</span>
                   </div>
                   <p className="donor-dashboard-request-card__desc">{t('Area:')} {request.area.name} · {t('Active pledges:')} {request.activePledgesCount}</p>
                   <p className="donor-dashboard-request-card__units">{t('Remaining:')} <strong>{request.unitsStillNeeded} {t('units')}</strong></p>
