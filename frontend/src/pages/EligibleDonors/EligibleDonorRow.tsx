@@ -11,7 +11,7 @@ interface EligibleDonorRowProps {
 }
 
 export function EligibleDonorRow({ donor, isActionDisabled, onRecordDonation }: EligibleDonorRowProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   function handleRecordDonation() {
     onRecordDonation(donor.id);
   }
@@ -34,7 +34,7 @@ export function EligibleDonorRow({ donor, isActionDisabled, onRecordDonation }: 
       <td className="eligible-donors-row__cell">{donor.area.name}</td>
       <td className="eligible-donors-row__cell">
         {donor.lastDonationDate ? (
-          <time dateTime={donor.lastDonationDate}>{formatDate(donor.lastDonationDate)}</time>
+          <time dateTime={donor.lastDonationDate}>{formatDate(donor.lastDonationDate, language)}</time>
         ) : <span className="eligible-donors-row__never">{t('Never donated')}</span>}
       </td>
       <td className="eligible-donors-row__cell">
