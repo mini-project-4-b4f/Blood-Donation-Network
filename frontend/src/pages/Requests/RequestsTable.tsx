@@ -4,7 +4,7 @@ import { BloodTypeBadge } from '../../components/common/BloodTypeBadge';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { UrgencyBadge } from '../../components/common/UrgencyBadge';
 import type { CoordinatorRequestSummary } from '../../types/request.types';
-import { formatDateTime, formatUnits } from '../../utils/format';
+import { formatUnits } from '../../utils/format';
 
 interface RequestsTableProps {
   requests: readonly CoordinatorRequestSummary[];
