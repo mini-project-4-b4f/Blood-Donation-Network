@@ -27,7 +27,7 @@ export function EligibleDonorRow({ donor, isActionDisabled, onRecordDonation }: 
         <div className="eligible-donors-row__badges">
           <BloodTypeBadge bloodType={donor.bloodType} isExactMatch={donor.isExactBloodMatch} />
           <span className={`eligible-donors-row__match${donor.isExactBloodMatch ? ' eligible-donors-row__match--exact' : ''}`}>
-            {donor.isExactBloodMatch ? 'Exact Match' : 'Compatible'}
+            {donor.isExactBloodMatch ? t('Exact Match') : t('Compatible')}
           </span>
         </div>
       </td>
