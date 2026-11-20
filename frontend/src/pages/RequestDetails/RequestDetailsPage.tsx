@@ -26,7 +26,7 @@ interface RequestPledgesListProps {
 }
 
 function RequestPledgesList({ pledges, canRecordDonation, isActionDisabled, onRecordDonation }: RequestPledgesListProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   function handleRecordDonation(event: MouseEvent<HTMLButtonElement>) {
     const donorId = event.currentTarget.dataset.donorId;
     if (donorId) onRecordDonation(donorId);
@@ -59,7 +59,7 @@ function RequestPledgesList({ pledges, canRecordDonation, isActionDisabled, onRe
             <div className="request-details-history__detail">
               <dt className="request-details-history__label">{t('Pledged at')}</dt>
               <dd className="request-details-history__value">
-                <time dateTime={pledge.createdAt}>{formatDateTime(pledge.createdAt)}</time>
+                <time dateTime={pledge.createdAt}>{formatDateTime(pledge.createdAt, language)}</time>
               </dd>
             </div>
           </dl>
@@ -102,7 +102,7 @@ function RequestDonationsList({ donations }: RequestDonationsListProps) {
               <h3 className="request-details-history__name">{donation.donor.fullName}</h3>
               <BloodTypeBadge bloodType={donation.donor.bloodType} />
             </div>
-            <span className="request-details-history__units">{formatUnits(donation.units)} {t('recorded')}</span>
+            <span className="request-details-history__units">{formatUnits(donation.units, language)} {t('recorded')}</span>
           </div>
           <dl className="request-details-history__metadata">
             <div className="request-details-history__detail">
@@ -112,13 +112,13 @@ function RequestDonationsList({ donations }: RequestDonationsListProps) {
             <div className="request-details-history__detail">
               <dt className="request-details-history__label">{t('Donation date')}</dt>
               <dd className="request-details-history__value">
-                <time dateTime={donation.donationDate}>{formatDate(donation.donationDate)}</time>
+                <time dateTime={donation.donationDate}>{formatDate(donation.donationDate, language)}</time>
               </dd>
             </div>
             <div className="request-details-history__detail">
               <dt className="request-details-history__label">{t('Recorded at')}</dt>
               <dd className="request-details-history__value">
-                <time dateTime={donation.createdAt}>{formatDateTime(donation.createdAt)}</time>
+                <time dateTime={donation.createdAt}>{formatDateTime(donation.createdAt, language)}</time>
               </dd>
             </div>
             <div className="request-details-history__detail">
@@ -139,7 +139,7 @@ function RequestDonationsList({ donations }: RequestDonationsListProps) {
 }
 
 export function RequestDetailsPage() {
-  const { t, direction } = useLanguage();
+  const { t, direction, language } = useLanguage();
   const { requestId } = useParams<{ requestId: string }>();
   const { currentRequest, isRequestDetailsLoading, requestDetailsError, loadRequestById, isMutationLoading, clearMutationError } = useRequests();
   const [loadedRequestId, setLoadedRequestId] = useState<string | null>(null);
@@ -354,11 +354,11 @@ export function RequestDetailsPage() {
             </div>
             <div className="request-details-page__detail">
               <dt className="request-details-page__label">{t('Created')}</dt>
-              <dd className="request-details-page__value"><time dateTime={request.createdAt}>{formatDateTime(request.createdAt)}</time></dd>
+              <dd className="request-details-page__value"><time dateTime={request.createdAt}>{formatDateTime(request.createdAt, language)}</time></dd>
             </div>
             <div className="request-details-page__detail">
               <dt className="request-details-page__label">{t('Last updated')}</dt>
-              <dd className="request-details-page__value"><time dateTime={request.updatedAt}>{formatDateTime(request.updatedAt)}</time></dd>
+              <dd className="request-details-page__value"><time dateTime={request.updatedAt}>{formatDateTime(request.updatedAt, language)}</time></dd>
             </div>
             <div className="request-details-page__detail">
               <dt className="request-details-page__label">{t('Request ID')}</dt>
