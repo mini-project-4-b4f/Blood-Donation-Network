@@ -245,7 +245,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
               aria-invalid={Boolean(errors.patientReference)}
               aria-describedby={`${fieldId('patientHelp')}${errors.patientReference ? ` ${fieldId('patientError')}` : ''}`}
             />
-            <p className="requests-create__help" id={fieldId('patientHelp')}>{t('Internal hospital code — never enter a patient's personal name')}</p>
+            <p className="requests-create__help" id={fieldId('patientHelp')}>{t("Internal hospital code — never enter a patient's personal name")}</p>
             {errors.patientReference && <p className="requests-create__field-error" id={fieldId('patientError')}>{errors.patientReference}</p>}
           </div>
 
