@@ -30,6 +30,7 @@ function isRealCalendarDate(value: string): boolean {
 }
 
 export function RecordDonationModal({ request, preselectedDonorId, onClose, onSuccess }: RecordDonationModalProps) {
+  const { t, direction } = useLanguage();
   const {
     allDonors, isAllDonorsLoading, allDonorsError, loadAllDonors,
     recordDonation, isMutationLoading, mutationError, clearMutationError, isRequestDetailsLoading,
