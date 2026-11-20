@@ -26,7 +26,7 @@ export const ActivePledgeCard: React.FC<ActivePledgeCardProps> = ({ pledge, onWi
       <div className="donor-dashboard-card__header">
         <h3 className="donor-dashboard-card__title">{t('You Have an Active Pledge! 🩸')}</h3>
         <span className={`donor-dashboard-badge donor-dashboard-badge--${request.urgency.toLowerCase()}`}>
-          {request.urgency}
+          {t(request.urgency)}
         </span>
       </div>
 
